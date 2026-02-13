@@ -128,3 +128,32 @@ def test_return_rework_revision_increment(tmp_path: Path):
     assert detail.json()["task"]["status"] == "RETURNED"
     assert detail.json()["form"]["revision_no"] == 2
 
+
+def test_admin_reviewer_candidates(tmp_path: Path):
+    db_path = tmp_path / "test3.db"
+    storage_dir = tmp_path / "storage3"
+    app = create_app(database_url=f"sqlite:///{db_path}", storage_dir=str(storage_dir))
+    client = TestClient(app)
+
+    create = client.post(
+        "/api/thesis/my",
+        headers=_headers(101, "student"),
+        json={"title": "Paper 3", "advisor_id": 3},
+    )
+    thesis_id = create.json()["data"]["thesis_id"]
+    client.post(
+        f"/api/thesis/{thesis_id}/upload-final",
+        headers=_headers(101, "student"),
+        files={"file": ("paper3.pdf", b"paper-v1", "application/pdf")},
+    )
+    client.post(f"/api/thesis/{thesis_id}/submit-final", headers=_headers(101, "student"))
+
+    candidates = client.get(
+        f"/api/admin/reviewers?thesis_id={thesis_id}",
+        headers=_headers(2, "admin"),
+    )
+    assert candidates.status_code == 200
+    items = candidates.json()["items"]
+    assert len(items) >= 2
+    conflicted = [x for x in items if x["id"] == 3][0]
+    assert conflicted["is_conflicted"] is True

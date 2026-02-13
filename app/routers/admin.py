@@ -29,6 +29,67 @@ from app.services.state_machine import refresh_thesis_status_from_tasks
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
 
+@router.get("/reviewers")
+def list_reviewer_candidates(
+    thesis_id: int | None = None,
+    q: str | None = None,
+    max_task_limit: int = 8,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_roles(UserRole.ADMIN)),
+):
+    thesis = db.get(Thesis, thesis_id) if thesis_id else None
+    if thesis_id and thesis is None:
+        raise HTTPException(status_code=404, detail="Thesis not found.")
+
+    reviewers = db.scalars(select(User).where(User.role == UserRole.REVIEWER).order_by(User.id.asc())).all()
+    rows: list[dict] = []
+    keyword = (q or "").strip().lower()
+    for reviewer in reviewers:
+        if keyword and keyword not in reviewer.name.lower() and keyword not in str(reviewer.id):
+            continue
+        active_tasks = db.scalar(
+            select(func.count(ReviewTask.id)).where(
+                ReviewTask.reviewer_id == reviewer.id,
+                ReviewTask.status.in_(
+                    [
+                        ReviewTaskStatus.ASSIGNED,
+                        ReviewTaskStatus.DRAFTING,
+                        ReviewTaskStatus.RETURNED,
+                    ]
+                ),
+            )
+        ) or 0
+        submitted_tasks = db.scalar(
+            select(func.count(ReviewTask.id)).where(
+                ReviewTask.reviewer_id == reviewer.id,
+                ReviewTask.status == ReviewTaskStatus.SUBMITTED,
+            )
+        ) or 0
+        latest_assigned_at = db.scalar(
+            select(func.max(ReviewTask.created_at)).where(ReviewTask.reviewer_id == reviewer.id)
+        )
+        is_conflicted = bool(thesis and thesis.advisor_id and reviewer.id == thesis.advisor_id)
+        available_slots = max(0, max_task_limit - active_tasks)
+        recommendation_score = available_slots - (5 if is_conflicted else 0)
+        rows.append(
+            {
+                "id": reviewer.id,
+                "name": reviewer.name,
+                "email": reviewer.email,
+                "active_task_count": active_tasks,
+                "submitted_task_count": submitted_tasks,
+                "max_task_limit": max_task_limit,
+                "available_slots": available_slots,
+                "is_conflicted": is_conflicted,
+                "conflict_reason": "导师回避冲突" if is_conflicted else None,
+                "latest_assigned_at": latest_assigned_at.isoformat() if latest_assigned_at else None,
+                "recommendation_score": recommendation_score,
+            }
+        )
+    rows.sort(key=lambda x: (x["is_conflicted"], -x["recommendation_score"], x["active_task_count"], x["id"]))
+    return {"items": rows}
+
+
 @router.get("/thesis")
 def list_thesis(
     status: str | None = None,

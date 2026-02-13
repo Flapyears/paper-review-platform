@@ -465,6 +465,15 @@ button:disabled {
   background: #f4efe5;
 }
 
+.data-table tr.conflict td {
+  background: #fff4f2;
+  color: #8f3128;
+}
+
+.single-line-label {
+  margin-top: 10px;
+}
+
 .detail-grid {
   margin-top: 10px;
   display: grid;

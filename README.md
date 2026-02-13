@@ -74,6 +74,26 @@ After opening the app, use top navigation to enter role workspaces:
 - `/admin/*`: dashboard, thesis list, assignment, task operations
 - `/reviewer/*`: task list, task detail/download, review form submission
 
+## Admin Assignment Guide
+
+Open `/admin/assign`:
+
+1. Select a `SUBMITTED` thesis.
+2. Load reviewer candidates from `GET /api/admin/reviewers?thesis_id=<id>`.
+3. Choose reviewers by:
+   - `is_conflicted=false` (conflicted reviewers are disabled in UI)
+   - lower `active_task_count`
+   - higher `available_slots` and `recommendation_score`
+4. Click assign to call `POST /api/admin/review-tasks/assign`.
+
+The candidate list includes:
+
+- reviewer basic info (`id`, `name`, `email`)
+- workload (`active_task_count`, `submitted_task_count`)
+- capacity (`max_task_limit`, `available_slots`)
+- conflict check (`is_conflicted`, `conflict_reason`)
+- scheduling hint (`latest_assigned_at`, `recommendation_score`)
+
 ## Frontend Layouts
 
 - `AuthLayout`: for `/login`, no system topbar/menu.
