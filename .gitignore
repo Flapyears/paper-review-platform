@@ -1,0 +1,23 @@
+# Bytecode and caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Local database and runtime files
+*.db
+*.sqlite
+storage/
+tmpdbg/
+tmpdbg2/
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+

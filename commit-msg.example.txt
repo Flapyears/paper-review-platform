@@ -1,0 +1,10 @@
+feat(scope): short summary
+
+# Optional body:
+# - why this change is needed
+# - what changed at high level
+# - any compatibility notes
+
+# Optional footer:
+# Closes: #123
+
