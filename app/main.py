@@ -1,6 +1,9 @@
 from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi import HTTPException
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.config import load_settings
 from app.database import create_engine_and_session, create_tables
@@ -29,12 +32,27 @@ def create_app(
     app.include_router(reviewer.router)
     app.include_router(files.router)
 
+    frontend_dist = Path("frontend/dist")
+    if (frontend_dist / "assets").exists():
+        app.mount("/assets", StaticFiles(directory=str(frontend_dist / "assets")), name="assets")
+
     @app.get("/health")
     def health() -> dict:
         return {"status": "ok"}
+
+    @app.get("/")
+    def index() -> FileResponse:
+        if (frontend_dist / "index.html").exists():
+            return FileResponse(str(frontend_dist / "index.html"))
+        raise HTTPException(status_code=404, detail="Frontend not built yet.")
+
+    @app.get("/{path:path}")
+    def spa_fallback(path: str) -> FileResponse:  # noqa: ARG001
+        if (frontend_dist / "index.html").exists():
+            return FileResponse(str(frontend_dist / "index.html"))
+        raise HTTPException(status_code=404, detail="Route not found.")
 
     return app
 
 
 app = create_app()
-
