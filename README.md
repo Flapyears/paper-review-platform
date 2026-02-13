@@ -37,15 +37,54 @@ uvicorn app.main:app --reload
 
 FastAPI will serve `frontend/dist` at `http://127.0.0.1:8000/` with SPA fallback routing.
 
+## Login Accounts (Default)
+
+Seeded automatically on startup:
+
+- Student: `student1` / `student123`
+- Admin: `admin1` / `admin123`
+- Reviewer: `reviewer1` / `reviewer123`
+- Reviewer: `reviewer2` / `reviewer123`
+
+Login API:
+
+- `POST /api/auth/login`
+- `GET /api/auth/me`
+- `POST /api/auth/logout`
+
 ## Auth Headers
 
-All APIs use headers for MVP auth:
+Browser frontend now uses Bearer token auth after login.
+
+For tests/dev fallback, APIs still support headers:
 
 - `X-User-Id`: integer user id
 - `X-Role`: `student` / `reviewer` / `admin`
 - `X-User-Name`: optional display name
 
 Vue frontend includes a header simulator, so you can switch roles directly in browser.
+
+## Frontend Pages
+
+After opening the app, use top navigation to enter role workspaces:
+
+- `/`: role workbench (my todos + quick entries + recent items)
+- `/help`: process help
+- `/student/*`: thesis overview, thesis info, upload and submission
+- `/admin/*`: dashboard, thesis list, assignment, task operations
+- `/reviewer/*`: task list, task detail/download, review form submission
+
+## Frontend Layouts
+
+- `AuthLayout`: for `/login`, no system topbar/menu.
+- `MainLayout`: for authenticated pages, includes topbar + role-based sidebar + main content.
+
+## DevTools Drawer
+
+Identity switching is moved to `DevToolsDrawer` (mock user/role):
+
+- shown in development mode automatically
+- or enable with env: `VITE_ENABLE_DEVTOOLS=true`
 
 ## Run Tests
 

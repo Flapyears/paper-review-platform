@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db_session
 from app.models import User, UserRole
+from app.services.auth import get_user_by_token
 
 
 def get_db(request: Request):
@@ -14,14 +15,22 @@ def get_db(request: Request):
 def get_current_user(
     request: Request,
     db: Session = Depends(get_db),
+    authorization: str | None = Header(default=None),
     x_user_id: int | None = Header(default=None),
     x_role: str | None = Header(default=None),
     x_user_name: str | None = Header(default=None),
 ) -> User:
+    if authorization and authorization.lower().startswith("bearer "):
+        token = authorization.split(" ", 1)[1].strip()
+        user = get_user_by_token(db, token)
+        if user is None:
+            raise HTTPException(status_code=401, detail="Invalid or expired token.")
+        return user
+
     if x_user_id is None or not x_role:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Missing X-User-Id or X-Role header.",
+            detail="Missing authorization token.",
         )
     try:
         role = UserRole(x_role.lower())
@@ -46,4 +55,3 @@ def require_roles(*roles: UserRole) -> Callable:
         return user
 
     return _checker
-

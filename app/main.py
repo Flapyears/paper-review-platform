@@ -4,10 +4,12 @@ from fastapi import FastAPI
 from fastapi import HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy.orm import Session
 
 from app.config import load_settings
 from app.database import create_engine_and_session, create_tables
-from app.routers import admin, files, reviewer, student
+from app.routers import admin, auth, files, reviewer, student
+from app.services.auth import seed_default_accounts
 
 
 def create_app(
@@ -26,7 +28,10 @@ def create_app(
     app.state.session_local = session_local
     Path(settings.storage_dir).mkdir(parents=True, exist_ok=True)
     create_tables(engine)
+    with Session(bind=engine) as db:
+        seed_default_accounts(db)
 
+    app.include_router(auth.router)
     app.include_router(student.router)
     app.include_router(admin.router)
     app.include_router(reviewer.router)
