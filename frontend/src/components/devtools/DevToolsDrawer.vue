@@ -38,8 +38,22 @@ const accountPresets = computed(() =>
   }))
 );
 
+const groupedAccountPresets = computed(() => {
+  const groups = {
+    admin: accountPresets.value.filter((x) => x.role === "admin"),
+    student: accountPresets.value.filter((x) => x.role === "student"),
+    reviewer: accountPresets.value.filter((x) => x.role === "reviewer"),
+  };
+  return groups;
+});
+
 function applyPreset(preset) {
   form.value = { ...preset };
+}
+
+function quickSwitch(preset) {
+  applyPreset(preset);
+  saveAndJump();
 }
 
 function saveAndJump() {
@@ -119,16 +133,37 @@ onMounted(loadAccounts);
     <div class="devtools-panel">
       <h4>Mock 身份切换</h4>
       <div class="devtools-presets">
-        <button v-for="item in staticPresets" :key="item.label" @click="applyPreset(item)">
+        <button v-for="item in staticPresets" :key="item.label" @click="quickSwitch(item)">
           {{ item.label }}
         </button>
       </div>
 
       <h4>真实账号快速切换</h4>
-      <div class="devtools-presets">
-        <button v-for="item in accountPresets" :key="item.label" @click="applyPreset(item)">
-          {{ item.label }}
-        </button>
+      <div class="devtools-groups">
+        <div v-if="groupedAccountPresets.admin.length" class="devtools-group">
+          <p class="devtools-group-title">管理员</p>
+          <div class="devtools-presets">
+            <button v-for="item in groupedAccountPresets.admin" :key="item.label" @click="quickSwitch(item)">
+              {{ item.label }}
+            </button>
+          </div>
+        </div>
+        <div v-if="groupedAccountPresets.student.length" class="devtools-group">
+          <p class="devtools-group-title">学生</p>
+          <div class="devtools-presets">
+            <button v-for="item in groupedAccountPresets.student" :key="item.label" @click="quickSwitch(item)">
+              {{ item.label }}
+            </button>
+          </div>
+        </div>
+        <div v-if="groupedAccountPresets.reviewer.length" class="devtools-group">
+          <p class="devtools-group-title">评阅教师</p>
+          <div class="devtools-presets">
+            <button v-for="item in groupedAccountPresets.reviewer" :key="item.label" @click="quickSwitch(item)">
+              {{ item.label }}
+            </button>
+          </div>
+        </div>
       </div>
 
       <h4>开发数据一键生成</h4>
