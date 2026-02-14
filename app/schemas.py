@@ -11,6 +11,7 @@ class ThesisCreateRequest(BaseModel):
 
 class ThesisUpdateRequest(BaseModel):
     title: str = Field(min_length=1, max_length=255)
+    advisor_id: int | None = None
 
 
 class ReturnRequest(BaseModel):

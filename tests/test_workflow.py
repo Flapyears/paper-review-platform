@@ -19,7 +19,7 @@ def test_end_to_end_workflow(tmp_path: Path):
     resp = client.post(
         "/api/thesis/my",
         headers=_headers(1, "student"),
-        json={"title": "My Paper", "advisor_id": 99},
+        json={"title": "My Paper", "advisor_id": 5},
     )
     assert resp.status_code == 200
     thesis_id = resp.json()["data"]["thesis_id"]
@@ -93,7 +93,7 @@ def test_return_rework_revision_increment(tmp_path: Path):
     create = client.post(
         "/api/thesis/my",
         headers=_headers(10, "student"),
-        json={"title": "Paper 2"},
+        json={"title": "Paper 2", "advisor_id": 4},
     )
     thesis_id = create.json()["data"]["thesis_id"]
     client.post(
@@ -172,7 +172,7 @@ def test_department_quota_limit(tmp_path: Path):
     create = client.post(
         "/api/thesis/my",
         headers=_headers(111, "student"),
-        json={"title": "Paper 4"},
+        json={"title": "Paper 4", "advisor_id": 4},
     )
     thesis_id = create.json()["data"]["thesis_id"]
     client.post(
@@ -193,7 +193,7 @@ def test_department_quota_limit(tmp_path: Path):
     success = client.post(
         "/api/admin/review-tasks/assign",
         headers=_headers(2, "admin"),
-        json={"items": [{"thesis_id": thesis_id, "reviewer_ids": [3, 4], "reason": "cross-dept"}]},
+        json={"items": [{"thesis_id": thesis_id, "reviewer_ids": [3, 6], "reason": "cross-dept"}]},
     )
     assert success.status_code == 200
 
@@ -207,7 +207,7 @@ def test_admin_review_task_list_contains_context(tmp_path: Path):
     create = client.post(
         "/api/thesis/my",
         headers=_headers(201, "student"),
-        json={"title": "Paper 5"},
+        json={"title": "Paper 5", "advisor_id": 4},
     )
     thesis_id = create.json()["data"]["thesis_id"]
     client.post(
@@ -327,3 +327,71 @@ def test_admin_manage_student_accounts(tmp_path: Path):
         json={"password": "newpass123"},
     )
     assert reset.status_code == 200
+
+
+def test_student_can_load_advisor_list(tmp_path: Path):
+    db_path = tmp_path / "test8.db"
+    storage_dir = tmp_path / "storage8"
+    app = create_app(database_url=f"sqlite:///{db_path}", storage_dir=str(storage_dir))
+    client = TestClient(app)
+
+    resp = client.get("/api/thesis/advisors", headers=_headers(1, "student"))
+    assert resp.status_code == 200
+    items = resp.json()["items"]
+    assert len(items) >= 2
+    assert any(item["id"] == 3 for item in items)
+
+
+def test_student_create_thesis_requires_advisor(tmp_path: Path):
+    db_path = tmp_path / "test9.db"
+    storage_dir = tmp_path / "storage9"
+    app = create_app(database_url=f"sqlite:///{db_path}", storage_dir=str(storage_dir))
+    client = TestClient(app)
+
+    resp = client.post(
+        "/api/thesis/my",
+        headers=_headers(301, "student"),
+        json={"title": "No advisor thesis"},
+    )
+    assert resp.status_code == 400
+    assert resp.json()["detail"] == "Advisor is required."
+
+
+def test_student_can_update_advisor_in_draft_only(tmp_path: Path):
+    db_path = tmp_path / "test10.db"
+    storage_dir = tmp_path / "storage10"
+    app = create_app(database_url=f"sqlite:///{db_path}", storage_dir=str(storage_dir))
+    client = TestClient(app)
+
+    created = client.post(
+        "/api/thesis/my",
+        headers=_headers(401, "student"),
+        json={"title": "Draft thesis", "advisor_id": 3},
+    )
+    assert created.status_code == 200
+    thesis_id = created.json()["data"]["thesis_id"]
+
+    update_draft = client.put(
+        f"/api/thesis/{thesis_id}",
+        headers=_headers(401, "student"),
+        json={"title": "Draft thesis v2", "advisor_id": 4},
+    )
+    assert update_draft.status_code == 200
+
+    current = client.get("/api/thesis/my", headers=_headers(401, "student"))
+    assert current.status_code == 200
+    assert current.json()["thesis"]["advisor_id"] == 4
+
+    client.post(
+        f"/api/thesis/{thesis_id}/upload-final",
+        headers=_headers(401, "student"),
+        files={"file": ("paper10.pdf", b"paper-v1", "application/pdf")},
+    )
+    client.post(f"/api/thesis/{thesis_id}/submit-final", headers=_headers(401, "student"))
+
+    update_submitted = client.put(
+        f"/api/thesis/{thesis_id}",
+        headers=_headers(401, "student"),
+        json={"title": "Draft thesis v3", "advisor_id": 3},
+    )
+    assert update_submitted.status_code == 400

@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.deps import get_db, require_roles
 from app.models import (
+    AuthCredential,
     FileRecord,
     Thesis,
     ThesisStatus,
@@ -26,6 +27,18 @@ def _get_my_thesis(db: Session, student_id: int) -> Thesis | None:
     return db.scalar(select(Thesis).where(Thesis.student_id == student_id))
 
 
+def _validate_advisor(db: Session, advisor_id: int | None) -> int:
+    if advisor_id is None:
+        raise HTTPException(status_code=400, detail="Advisor is required.")
+    advisor = db.get(User, advisor_id)
+    if advisor is None or advisor.role != UserRole.REVIEWER:
+        raise HTTPException(status_code=400, detail="Invalid advisor.")
+    credential = db.scalar(select(AuthCredential).where(AuthCredential.user_id == advisor.id))
+    if credential and not credential.is_active:
+        raise HTTPException(status_code=400, detail="Advisor is inactive.")
+    return advisor.id
+
+
 @router.get("/my")
 def get_my_thesis(
     db: Session = Depends(get_db),
@@ -37,6 +50,32 @@ def get_my_thesis(
     return {"thesis": _serialize_thesis(thesis)}
 
 
+@router.get("/advisors")
+def list_advisors(
+    q: str | None = None,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_roles(UserRole.STUDENT)),
+):
+    keyword = (q or "").strip().lower()
+    reviewers = db.scalars(select(User).where(User.role == UserRole.REVIEWER).order_by(User.id.asc())).all()
+    items = []
+    for reviewer in reviewers:
+        credential = db.scalar(select(AuthCredential).where(AuthCredential.user_id == reviewer.id))
+        if credential and not credential.is_active:
+            continue
+        if keyword and keyword not in reviewer.name.lower() and keyword not in str(reviewer.id):
+            continue
+        items.append(
+            {
+                "id": reviewer.id,
+                "name": reviewer.name,
+                "department": reviewer.department,
+                "email": reviewer.email,
+            }
+        )
+    return {"items": items}
+
+
 @router.post("/my", response_model=MessageResponse)
 def create_my_thesis(
     payload: ThesisCreateRequest,
@@ -46,17 +85,8 @@ def create_my_thesis(
     existing = _get_my_thesis(db, user.id)
     if existing:
         raise HTTPException(status_code=400, detail="Student thesis already exists.")
-    if payload.advisor_id is not None:
-        advisor = db.get(User, payload.advisor_id)
-        if advisor is None:
-            advisor = User(
-                id=payload.advisor_id,
-                role=UserRole.REVIEWER,
-                name=f"advisor-{payload.advisor_id}",
-            )
-            db.add(advisor)
-            db.flush()
-    thesis = Thesis(title=payload.title.strip(), student_id=user.id, advisor_id=payload.advisor_id)
+    advisor_id = _validate_advisor(db, payload.advisor_id)
+    thesis = Thesis(title=payload.title.strip(), student_id=user.id, advisor_id=advisor_id)
     db.add(thesis)
     db.flush()
     write_audit_log(db, user.id, "thesis_create", "thesis", str(thesis.id))
@@ -77,6 +107,8 @@ def update_my_thesis(
     if thesis.status != ThesisStatus.DRAFT:
         raise HTTPException(status_code=400, detail="Only DRAFT thesis can be edited.")
     thesis.title = payload.title.strip()
+    if "advisor_id" in payload.model_fields_set:
+        thesis.advisor_id = _validate_advisor(db, payload.advisor_id)
     write_audit_log(db, user.id, "thesis_update", "thesis", str(thesis.id))
     db.commit()
     return MessageResponse(message="updated")

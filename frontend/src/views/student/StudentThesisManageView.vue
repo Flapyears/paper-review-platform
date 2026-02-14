@@ -1,16 +1,48 @@
-﻿<script setup>
-import { ref } from "vue";
-import { requestJson } from "../../services/api";
+<script setup>
+import { onMounted, ref } from "vue";
+import { request, requestJson } from "../../services/api";
 import { notifyError, notifySuccess } from "../../stores/notice";
 
 const title = ref("");
 const advisorId = ref("");
 const thesisId = ref("");
+const advisors = ref([]);
+const loadingAdvisors = ref(false);
+
+async function loadMyThesis() {
+  try {
+    const resp = await request("/api/thesis/my");
+    const thesis = resp.thesis;
+    if (!thesis) {
+      return;
+    }
+    thesisId.value = String(thesis.id || "");
+    title.value = thesis.title || "";
+    advisorId.value = thesis.advisor_id != null ? String(thesis.advisor_id) : "";
+  } catch (err) {
+    notifyError(err.message || String(err));
+  }
+}
+
+async function loadAdvisors() {
+  loadingAdvisors.value = true;
+  try {
+    const resp = await request("/api/thesis/advisors");
+    advisors.value = resp.items || [];
+  } catch (err) {
+    notifyError(err.message || String(err));
+  } finally {
+    loadingAdvisors.value = false;
+  }
+}
 
 async function createThesis() {
   try {
+    if (!advisorId.value) {
+      throw new Error("请选择导师后再创建论文");
+    }
     const payload = { title: title.value.trim() };
-    if (advisorId.value !== "") payload.advisor_id = Number(advisorId.value);
+    payload.advisor_id = Number(advisorId.value);
     const data = await requestJson("/api/thesis/my", "POST", payload);
     thesisId.value = String(data?.data?.thesis_id || "");
     notifySuccess(`论文创建成功，ID: ${thesisId.value}`);
@@ -21,12 +53,22 @@ async function createThesis() {
 
 async function updateTitle() {
   try {
-    await requestJson(`/api/thesis/${Number(thesisId.value)}`, "PUT", { title: title.value.trim() });
-    notifySuccess("论文标题已更新");
+    if (!advisorId.value) {
+      throw new Error("请选择导师后再保存");
+    }
+    await requestJson(`/api/thesis/${Number(thesisId.value)}`, "PUT", {
+      title: title.value.trim(),
+      advisor_id: Number(advisorId.value),
+    });
+    notifySuccess("论文信息已更新");
   } catch (err) {
     notifyError(err.message || String(err));
   }
 }
+
+onMounted(async () => {
+  await Promise.all([loadAdvisors(), loadMyThesis()]);
+});
 </script>
 
 <template>
@@ -44,14 +86,22 @@ async function updateTitle() {
         <input v-model="title" placeholder="请输入论文标题" />
       </label>
       <label>
-        导师ID（可选）
-        <input v-model="advisorId" type="number" />
+        导师
+        <select v-model="advisorId" :disabled="loadingAdvisors">
+          <option value="">请选择导师</option>
+          <option v-for="advisor in advisors" :key="advisor.id" :value="String(advisor.id)">
+            {{ advisor.name }} (#{{ advisor.id }}){{ advisor.department ? ` - ${advisor.department}` : "" }}
+          </option>
+        </select>
       </label>
     </div>
 
     <div class="row-actions">
-      <button class="accent" @click="createThesis">创建论文</button>
-      <button @click="updateTitle">更新标题</button>
+      <button class="accent" :disabled="!advisorId" @click="createThesis">创建论文</button>
+      <button :disabled="!thesisId || !advisorId" @click="updateTitle">保存论文信息</button>
+      <button :disabled="loadingAdvisors" @click="loadAdvisors">
+        {{ loadingAdvisors ? "加载中..." : "刷新导师列表" }}
+      </button>
     </div>
   </section>
 </template>

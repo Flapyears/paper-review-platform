@@ -125,6 +125,12 @@ Student management APIs:
 - `POST /api/admin/students/{student_id}/toggle-active`
 - `POST /api/admin/students/{student_id}/reset-password`
 
+Student thesis helper API:
+
+- `GET /api/thesis/advisors` for advisor dropdown options on thesis create page
+- advisor is required when creating thesis (`POST /api/thesis/my`)
+- student can update advisor only when thesis status is `DRAFT` (`PUT /api/thesis/{thesis_id}`)
+
 ## Frontend Layouts
 
 - `AuthLayout`: for `/login`, no system topbar/menu.
