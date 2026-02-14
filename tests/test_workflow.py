@@ -467,3 +467,70 @@ def test_dev_seed_endpoints(tmp_path: Path):
 
     reset = client.post("/api/dev/reset", json={"reseed_defaults": True})
     assert reset.status_code == 200
+
+
+def test_admin_auto_assign_unassigned_theses(tmp_path: Path):
+    db_path = tmp_path / "test13.db"
+    storage_dir = tmp_path / "storage13"
+    app = create_app(database_url=f"sqlite:///{db_path}", storage_dir=str(storage_dir))
+    client = TestClient(app)
+
+    create = client.post(
+        "/api/thesis/my",
+        headers=_headers(601, "student"),
+        json={"title": "Auto Assign Thesis", "advisor_id": 3},
+    )
+    thesis_id = create.json()["data"]["thesis_id"]
+    client.post(
+        f"/api/thesis/{thesis_id}/upload-final",
+        headers=_headers(601, "student"),
+        files={"file": ("auto.pdf", b"auto-v1", "application/pdf")},
+    )
+    client.post(f"/api/thesis/{thesis_id}/submit-final", headers=_headers(601, "student"))
+
+    auto = client.post(
+        "/api/admin/review-tasks/auto-assign",
+        headers=_headers(2, "admin"),
+        json={"reviewers_per_thesis": 2, "max_task_limit": 8},
+    )
+    assert auto.status_code == 200
+    assert auto.json()["data"]["assigned_thesis_count"] == 1
+    assert auto.json()["data"]["created_task_count"] == 2
+
+    thesis_list = client.get("/api/admin/thesis", headers=_headers(2, "admin"))
+    target = [x for x in thesis_list.json()["items"] if x["id"] == thesis_id][0]
+    assert target["status"] == "REVIEWING"
+
+
+def test_admin_auto_assign_skips_when_department_quota_cannot_be_satisfied(tmp_path: Path):
+    db_path = tmp_path / "test14.db"
+    storage_dir = tmp_path / "storage14"
+    app = create_app(
+        database_url=f"sqlite:///{db_path}",
+        storage_dir=str(storage_dir),
+        max_reviewers_per_department=1,
+    )
+    client = TestClient(app)
+
+    created = client.post(
+        "/api/thesis/my",
+        headers=_headers(701, "student"),
+        json={"title": "Quota Skip Thesis", "advisor_id": 4},
+    )
+    thesis_id = created.json()["data"]["thesis_id"]
+    client.post(
+        f"/api/thesis/{thesis_id}/upload-final",
+        headers=_headers(701, "student"),
+        files={"file": ("quota.pdf", b"quota-v1", "application/pdf")},
+    )
+    client.post(f"/api/thesis/{thesis_id}/submit-final", headers=_headers(701, "student"))
+
+    auto = client.post(
+        "/api/admin/review-tasks/auto-assign",
+        headers=_headers(2, "admin"),
+        json={"reviewers_per_thesis": 2, "max_task_limit": 8},
+    )
+    assert auto.status_code == 200
+    data = auto.json()["data"]
+    assert data["assigned_thesis_count"] == 0
+    assert any(x["thesis_id"] == thesis_id and x["reason"] == "insufficient_reviewers" for x in data["skipped"])

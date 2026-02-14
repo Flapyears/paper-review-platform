@@ -19,6 +19,7 @@ from app.models import (
     UserRole,
 )
 from app.schemas import (
+    AutoAssignRequest,
     AssignRequest,
     CancelRequest,
     MessageResponse,
@@ -184,6 +185,89 @@ def list_reviewer_candidates(
         )
     )
     return {"items": rows}
+
+
+def _reviewer_candidates_for_thesis(
+    *,
+    db: Session,
+    thesis: Thesis,
+    max_per_department: int,
+    max_task_limit: int,
+) -> list[dict]:
+    thesis_department_counts: dict[str, int] = {}
+    assigned_reviewer_ids = set(
+        db.scalars(
+            select(ReviewTask.reviewer_id).where(
+                ReviewTask.thesis_id == thesis.id,
+                ReviewTask.status != ReviewTaskStatus.CANCELLED,
+            )
+        ).all()
+    )
+    thesis_department_counts = _count_departments(
+        list(_load_user_department_map(db, assigned_reviewer_ids).values())
+    )
+
+    reviewers = db.scalars(select(User).where(User.role == UserRole.REVIEWER).order_by(User.id.asc())).all()
+    rows: list[dict] = []
+    for reviewer in reviewers:
+        active_tasks = db.scalar(
+            select(func.count(ReviewTask.id)).where(
+                ReviewTask.reviewer_id == reviewer.id,
+                ReviewTask.status.in_(
+                    [
+                        ReviewTaskStatus.ASSIGNED,
+                        ReviewTaskStatus.DRAFTING,
+                        ReviewTaskStatus.RETURNED,
+                    ]
+                ),
+            )
+        ) or 0
+        submitted_tasks = db.scalar(
+            select(func.count(ReviewTask.id)).where(
+                ReviewTask.reviewer_id == reviewer.id,
+                ReviewTask.status == ReviewTaskStatus.SUBMITTED,
+            )
+        ) or 0
+        latest_assigned_at = db.scalar(
+            select(func.max(ReviewTask.created_at)).where(ReviewTask.reviewer_id == reviewer.id)
+        )
+        department = _normalize_department(reviewer.department)
+        dept_assigned_count = thesis_department_counts.get(department, 0)
+        dept_remaining_slots = max(0, max_per_department - dept_assigned_count)
+        dept_will_exceed_quota = dept_assigned_count + 1 > max_per_department
+        is_conflicted = bool(thesis.advisor_id and reviewer.id == thesis.advisor_id)
+        available_slots = max(0, max_task_limit - active_tasks)
+        recommendation_score = available_slots - (5 if is_conflicted else 0) - (3 if dept_will_exceed_quota else 0)
+        rows.append(
+            {
+                "id": reviewer.id,
+                "name": reviewer.name,
+                "email": reviewer.email,
+                "department": department,
+                "active_task_count": active_tasks,
+                "submitted_task_count": submitted_tasks,
+                "max_task_limit": max_task_limit,
+                "available_slots": available_slots,
+                "is_conflicted": is_conflicted,
+                "conflict_reason": "导师回避冲突" if is_conflicted else None,
+                "department_assigned_count": dept_assigned_count,
+                "department_max_limit": max_per_department,
+                "department_remaining_slots": dept_remaining_slots,
+                "department_will_exceed_quota": dept_will_exceed_quota,
+                "latest_assigned_at": latest_assigned_at.isoformat() if latest_assigned_at else None,
+                "recommendation_score": recommendation_score,
+            }
+        )
+    rows.sort(
+        key=lambda x: (
+            x["is_conflicted"],
+            x["department_will_exceed_quota"],
+            -x["recommendation_score"],
+            x["active_task_count"],
+            x["id"],
+        )
+    )
+    return rows
 
 
 @router.get("/reviewers/manage")
@@ -699,6 +783,102 @@ def assign_review_tasks(
 
     db.commit()
     return MessageResponse(message="assigned", data={"task_ids": created_task_ids})
+
+
+@router.post("/review-tasks/auto-assign", response_model=MessageResponse)
+def auto_assign_review_tasks(
+    request: Request,
+    payload: AutoAssignRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_roles(UserRole.ADMIN)),
+):
+    max_per_department = request.app.state.settings.max_reviewers_per_department
+    theses = db.scalars(select(Thesis).where(Thesis.status == ThesisStatus.SUBMITTED).order_by(Thesis.id.asc())).all()
+    created_task_ids: list[int] = []
+    assigned_thesis_ids: list[int] = []
+    skipped: list[dict] = []
+
+    for thesis in theses:
+        try:
+            if thesis.current_version_id is None:
+                skipped.append({"thesis_id": thesis.id, "reason": "missing_current_version"})
+                continue
+            existing_task_count = db.scalar(
+                select(func.count(ReviewTask.id)).where(
+                    ReviewTask.thesis_id == thesis.id,
+                    ReviewTask.status != ReviewTaskStatus.CANCELLED,
+                )
+            ) or 0
+            if existing_task_count > 0:
+                skipped.append({"thesis_id": thesis.id, "reason": "already_assigned"})
+                continue
+
+            candidates = _reviewer_candidates_for_thesis(
+                db=db,
+                thesis=thesis,
+                max_per_department=max_per_department,
+                max_task_limit=payload.max_task_limit,
+            )
+            dept_counts: dict[str, int] = {}
+            chosen: list[int] = []
+            for row in candidates:
+                if row["is_conflicted"] or row["available_slots"] <= 0:
+                    continue
+                department = row["department"]
+                if max_per_department > 0 and dept_counts.get(department, 0) >= max_per_department:
+                    continue
+                chosen.append(row["id"])
+                dept_counts[department] = dept_counts.get(department, 0) + 1
+                if len(chosen) >= payload.reviewers_per_thesis:
+                    break
+            if len(chosen) < payload.reviewers_per_thesis:
+                skipped.append({"thesis_id": thesis.id, "reason": "insufficient_reviewers"})
+                continue
+
+            _validate_department_quota(
+                db=db,
+                thesis_id=thesis.id,
+                new_reviewer_ids=set(chosen),
+                max_per_department=max_per_department,
+            )
+
+            for reviewer_id in chosen:
+                task = ReviewTask(
+                    thesis_id=thesis.id,
+                    version_id=thesis.current_version_id,
+                    reviewer_id=reviewer_id,
+                    assigned_by=user.id,
+                    status=ReviewTaskStatus.ASSIGNED,
+                    assigned_reason=payload.reason or "auto_assign_unassigned",
+                )
+                db.add(task)
+                db.flush()
+                created_task_ids.append(task.id)
+                write_audit_log(
+                    db,
+                    user.id,
+                    "review_task_auto_assign",
+                    "review_task",
+                    str(task.id),
+                    payload={"thesis_id": thesis.id, "reviewer_id": reviewer_id},
+                )
+            thesis.status = ThesisStatus.REVIEWING
+            assigned_thesis_ids.append(thesis.id)
+        except HTTPException as exc:
+            skipped.append({"thesis_id": thesis.id, "reason": f"auto_assign_error:{exc.detail}"})
+            continue
+
+    db.commit()
+    return MessageResponse(
+        message="auto_assigned",
+        data={
+            "assigned_thesis_ids": assigned_thesis_ids,
+            "created_task_ids": created_task_ids,
+            "assigned_thesis_count": len(assigned_thesis_ids),
+            "created_task_count": len(created_task_ids),
+            "skipped": skipped,
+        },
+    )
 
 
 @router.post("/review-tasks/{task_id}/replace", response_model=MessageResponse)
