@@ -14,6 +14,7 @@ async function loadMyThesis() {
     const resp = await request("/api/thesis/my");
     const thesis = resp.thesis;
     if (!thesis) {
+      thesisId.value = "";
       return;
     }
     thesisId.value = String(thesis.id || "");
@@ -45,6 +46,7 @@ async function createThesis() {
     payload.advisor_id = Number(advisorId.value);
     const data = await requestJson("/api/thesis/my", "POST", payload);
     thesisId.value = String(data?.data?.thesis_id || "");
+    await loadMyThesis();
     notifySuccess(`论文创建成功，ID: ${thesisId.value}`);
   } catch (err) {
     notifyError(err.message || String(err));
@@ -79,7 +81,7 @@ onMounted(async () => {
     <div class="form-grid three">
       <label>
         论文ID
-        <input v-model="thesisId" type="number" placeholder="创建后自动回填" />
+        <input :value="thesisId || '尚未创建'" readonly />
       </label>
       <label class="wide">
         论文标题
@@ -97,8 +99,9 @@ onMounted(async () => {
     </div>
 
     <div class="row-actions">
-      <button class="accent" :disabled="!advisorId" @click="createThesis">创建论文</button>
-      <button :disabled="!thesisId || !advisorId" @click="updateTitle">保存论文信息</button>
+      <button v-if="!thesisId" class="accent" :disabled="!advisorId" @click="createThesis">创建论文</button>
+      <button v-else :disabled="!advisorId" @click="updateTitle">保存论文信息</button>
+      <button @click="loadMyThesis">刷新我的论文</button>
       <button :disabled="loadingAdvisors" @click="loadAdvisors">
         {{ loadingAdvisors ? "加载中..." : "刷新导师列表" }}
       </button>
