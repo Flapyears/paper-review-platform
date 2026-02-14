@@ -157,3 +157,42 @@ def test_admin_reviewer_candidates(tmp_path: Path):
     assert len(items) >= 2
     conflicted = [x for x in items if x["id"] == 3][0]
     assert conflicted["is_conflicted"] is True
+
+
+def test_department_quota_limit(tmp_path: Path):
+    db_path = tmp_path / "test4.db"
+    storage_dir = tmp_path / "storage4"
+    app = create_app(
+        database_url=f"sqlite:///{db_path}",
+        storage_dir=str(storage_dir),
+        max_reviewers_per_department=1,
+    )
+    client = TestClient(app)
+
+    create = client.post(
+        "/api/thesis/my",
+        headers=_headers(111, "student"),
+        json={"title": "Paper 4"},
+    )
+    thesis_id = create.json()["data"]["thesis_id"]
+    client.post(
+        f"/api/thesis/{thesis_id}/upload-final",
+        headers=_headers(111, "student"),
+        files={"file": ("paper4.pdf", b"paper-v1", "application/pdf")},
+    )
+    client.post(f"/api/thesis/{thesis_id}/submit-final", headers=_headers(111, "student"))
+
+    failed = client.post(
+        "/api/admin/review-tasks/assign",
+        headers=_headers(2, "admin"),
+        json={"items": [{"thesis_id": thesis_id, "reviewer_ids": [3, 5], "reason": "quota-check"}]},
+    )
+    assert failed.status_code == 400
+    assert "Department quota exceeded" in failed.json()["detail"]
+
+    success = client.post(
+        "/api/admin/review-tasks/assign",
+        headers=_headers(2, "admin"),
+        json={"items": [{"thesis_id": thesis_id, "reviewer_ids": [3, 4], "reason": "cross-dept"}]},
+    )
+    assert success.status_code == 200

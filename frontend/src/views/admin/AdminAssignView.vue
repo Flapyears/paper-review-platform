@@ -56,7 +56,7 @@ async function loadReviewers() {
 
 function toggleReviewer(id) {
   const reviewer = reviewers.value.find((x) => x.id === id);
-  if (!reviewer || reviewer.is_conflicted) {
+  if (!reviewer || reviewer.is_conflicted || reviewer.department_will_exceed_quota) {
     return;
   }
   if (selectedReviewerIds.value.includes(id)) {
@@ -200,9 +200,11 @@ onMounted(loadSubmitted);
         <tr>
           <th>选择</th>
           <th>教师</th>
+          <th>科室</th>
           <th>活跃任务</th>
           <th>已提交任务</th>
           <th>可分配余量</th>
+          <th>科室名额</th>
           <th>冲突</th>
           <th>最近分配</th>
           <th>推荐分</th>
@@ -213,16 +215,29 @@ onMounted(loadSubmitted);
           <td>
             <input
               type="checkbox"
-              :disabled="reviewer.is_conflicted"
+              :disabled="reviewer.is_conflicted || reviewer.department_will_exceed_quota"
               :checked="selectedReviewerIds.includes(reviewer.id)"
               @change="toggleReviewer(reviewer.id)"
             />
           </td>
           <td>{{ reviewer.name }} (#{{ reviewer.id }})</td>
+          <td>{{ reviewer.department }}</td>
           <td>{{ reviewer.active_task_count }}</td>
           <td>{{ reviewer.submitted_task_count }}</td>
           <td>{{ reviewer.available_slots }}</td>
-          <td>{{ reviewer.is_conflicted ? reviewer.conflict_reason : "-" }}</td>
+          <td>
+            {{ reviewer.department_assigned_count }}/{{ reviewer.department_max_limit }}
+            <span v-if="reviewer.department_will_exceed_quota">（超限）</span>
+          </td>
+          <td>
+            {{
+              reviewer.is_conflicted
+                ? reviewer.conflict_reason
+                : reviewer.department_will_exceed_quota
+                  ? "科室名额超限"
+                  : "-"
+            }}
+          </td>
           <td>{{ fmtDate(reviewer.latest_assigned_at) }}</td>
           <td>{{ reviewer.recommendation_score }}</td>
         </tr>

@@ -41,6 +41,7 @@ class User(Base):
     role: Mapped[UserRole] = mapped_column(SAEnum(UserRole), nullable=False)
     name: Mapped[str] = mapped_column(String(128), nullable=False)
     email: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    department: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
 

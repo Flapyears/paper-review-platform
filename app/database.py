@@ -1,6 +1,6 @@
 from collections.abc import Generator
 
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine, event, inspect, text
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 
@@ -24,6 +24,27 @@ def _set_sqlite_pragma(dbapi_connection, connection_record) -> None:  # noqa: AN
 
 def create_tables(engine) -> None:  # noqa: ANN001
     Base.metadata.create_all(bind=engine)
+
+
+def run_compat_migrations(engine) -> None:  # noqa: ANN001
+    """Apply lightweight additive migrations for local SQLite deployments."""
+    inspector = inspect(engine)
+    if "users" not in inspector.get_table_names():
+        return
+
+    user_columns = {col["name"] for col in inspector.get_columns("users")}
+    statements: list[str] = []
+    if "department" not in user_columns:
+        statements.append("ALTER TABLE users ADD COLUMN department VARCHAR(64)")
+    statements.append(
+        "CREATE INDEX IF NOT EXISTS ix_users_department ON users (department)"
+    )
+
+    if not statements:
+        return
+    with engine.begin() as conn:
+        for stmt in statements:
+            conn.execute(text(stmt))
 
 
 def get_db_session(session_local) -> Generator[Session, None, None]:  # noqa: ANN001

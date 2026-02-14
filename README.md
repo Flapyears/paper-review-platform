@@ -45,6 +45,7 @@ Seeded automatically on startup:
 - Admin: `admin1` / `admin123`
 - Reviewer: `reviewer1` / `reviewer123`
 - Reviewer: `reviewer2` / `reviewer123`
+- Reviewer: `reviewer3` / `reviewer123`
 
 Login API:
 
@@ -93,6 +94,13 @@ The candidate list includes:
 - capacity (`max_task_limit`, `available_slots`)
 - conflict check (`is_conflicted`, `conflict_reason`)
 - scheduling hint (`latest_assigned_at`, `recommendation_score`)
+- reviewer department quota (`department_assigned_count`, `department_max_limit`)
+
+Department assignment rule (Rule B):
+
+- each reviewer belongs to a `department`
+- per thesis, the same department can have at most `N` reviewers
+- configure `N` by env `MAX_REVIEWERS_PER_DEPARTMENT` (default `1`)
 
 ## Frontend Layouts
 

@@ -47,18 +47,62 @@ def get_user_by_token(db: Session, token: str) -> User | None:
 
 def seed_default_accounts(db: Session) -> None:
     defaults = [
-        {"user_id": 1, "role": UserRole.STUDENT, "name": "student-1", "username": "student1", "password": "student123"},
-        {"user_id": 2, "role": UserRole.ADMIN, "name": "admin-2", "username": "admin1", "password": "admin123"},
-        {"user_id": 3, "role": UserRole.REVIEWER, "name": "reviewer-3", "username": "reviewer1", "password": "reviewer123"},
-        {"user_id": 4, "role": UserRole.REVIEWER, "name": "reviewer-4", "username": "reviewer2", "password": "reviewer123"},
+        {
+            "user_id": 1,
+            "role": UserRole.STUDENT,
+            "name": "student-1",
+            "username": "student1",
+            "password": "student123",
+            "department": None,
+        },
+        {
+            "user_id": 2,
+            "role": UserRole.ADMIN,
+            "name": "admin-2",
+            "username": "admin1",
+            "password": "admin123",
+            "department": None,
+        },
+        {
+            "user_id": 3,
+            "role": UserRole.REVIEWER,
+            "name": "reviewer-3",
+            "username": "reviewer1",
+            "password": "reviewer123",
+            "department": "计算机系",
+        },
+        {
+            "user_id": 4,
+            "role": UserRole.REVIEWER,
+            "name": "reviewer-4",
+            "username": "reviewer2",
+            "password": "reviewer123",
+            "department": "软件系",
+        },
+        {
+            "user_id": 5,
+            "role": UserRole.REVIEWER,
+            "name": "reviewer-5",
+            "username": "reviewer3",
+            "password": "reviewer123",
+            "department": "计算机系",
+        },
     ]
     changed = False
     for item in defaults:
         user = db.get(User, item["user_id"])
         if user is None:
-            user = User(id=item["user_id"], role=item["role"], name=item["name"])
+            user = User(
+                id=item["user_id"],
+                role=item["role"],
+                name=item["name"],
+                department=item["department"],
+            )
             db.add(user)
             db.flush()
+            changed = True
+        elif user.department != item["department"]:
+            user.department = item["department"]
             changed = True
         credential = db.scalar(select(AuthCredential).where(AuthCredential.user_id == user.id))
         if credential is None:
@@ -72,4 +116,3 @@ def seed_default_accounts(db: Session) -> None:
             changed = True
     if changed:
         db.commit()
-
