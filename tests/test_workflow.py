@@ -196,3 +196,38 @@ def test_department_quota_limit(tmp_path: Path):
         json={"items": [{"thesis_id": thesis_id, "reviewer_ids": [3, 4], "reason": "cross-dept"}]},
     )
     assert success.status_code == 200
+
+
+def test_admin_review_task_list_contains_context(tmp_path: Path):
+    db_path = tmp_path / "test5.db"
+    storage_dir = tmp_path / "storage5"
+    app = create_app(database_url=f"sqlite:///{db_path}", storage_dir=str(storage_dir))
+    client = TestClient(app)
+
+    create = client.post(
+        "/api/thesis/my",
+        headers=_headers(201, "student"),
+        json={"title": "Paper 5"},
+    )
+    thesis_id = create.json()["data"]["thesis_id"]
+    client.post(
+        f"/api/thesis/{thesis_id}/upload-final",
+        headers=_headers(201, "student"),
+        files={"file": ("paper5.pdf", b"paper-v1", "application/pdf")},
+    )
+    client.post(f"/api/thesis/{thesis_id}/submit-final", headers=_headers(201, "student"))
+    assign = client.post(
+        "/api/admin/review-tasks/assign",
+        headers=_headers(2, "admin"),
+        json={"items": [{"thesis_id": thesis_id, "reviewer_ids": [3], "reason": "task-list"}]},
+    )
+    task_id = assign.json()["data"]["task_ids"][0]
+
+    resp = client.get("/api/admin/review-tasks", headers=_headers(2, "admin"))
+    assert resp.status_code == 200
+    rows = resp.json()["items"]
+    row = [x for x in rows if x["task_id"] == task_id][0]
+    assert row["thesis_id"] == thesis_id
+    assert row["thesis_title"] == "Paper 5"
+    assert row["reviewer_id"] == 3
+    assert row["reviewer_name"] is not None

@@ -214,6 +214,65 @@ def list_thesis(
     return {"items": rows}
 
 
+@router.get("/review-tasks")
+def list_review_tasks(
+    status: str | None = None,
+    thesis_id: int | None = None,
+    reviewer_id: int | None = None,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_roles(UserRole.ADMIN)),
+):
+    query = select(ReviewTask)
+    if status:
+        try:
+            task_status = ReviewTaskStatus(status)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail="Invalid status") from exc
+        query = query.where(ReviewTask.status == task_status)
+    if thesis_id is not None:
+        query = query.where(ReviewTask.thesis_id == thesis_id)
+    if reviewer_id is not None:
+        query = query.where(ReviewTask.reviewer_id == reviewer_id)
+
+    tasks = db.scalars(query.order_by(ReviewTask.updated_at.desc())).all()
+    thesis_ids = {task.thesis_id for task in tasks}
+    thesis_map = (
+        {thesis.id: thesis for thesis in db.scalars(select(Thesis).where(Thesis.id.in_(thesis_ids))).all()}
+        if thesis_ids
+        else {}
+    )
+    user_ids = {task.reviewer_id for task in tasks}.union({task.assigned_by for task in tasks})
+    user_map = (
+        {u.id: u for u in db.scalars(select(User).where(User.id.in_(user_ids))).all()} if user_ids else {}
+    )
+
+    rows = []
+    for task in tasks:
+        thesis = thesis_map.get(task.thesis_id)
+        reviewer = user_map.get(task.reviewer_id)
+        assigner = user_map.get(task.assigned_by)
+        rows.append(
+            {
+                "task_id": task.id,
+                "status": task.status.value,
+                "thesis_id": task.thesis_id,
+                "thesis_title": thesis.title if thesis else None,
+                "reviewer_id": task.reviewer_id,
+                "reviewer_name": reviewer.name if reviewer else None,
+                "reviewer_department": _normalize_department(reviewer.department if reviewer else None),
+                "assigned_by": task.assigned_by,
+                "assigned_by_name": assigner.name if assigner else None,
+                "assigned_reason": task.assigned_reason,
+                "due_at": task.due_at.isoformat() if task.due_at else None,
+                "return_reason": task.return_reason,
+                "cancelled_reason": task.cancelled_reason,
+                "created_at": task.created_at.isoformat(),
+                "updated_at": task.updated_at.isoformat(),
+            }
+        )
+    return {"items": rows}
+
+
 @router.post("/thesis/{thesis_id}/return", response_model=MessageResponse)
 def return_thesis(
     thesis_id: int,
