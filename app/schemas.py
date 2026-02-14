@@ -29,6 +29,12 @@ class AssignRequest(BaseModel):
     due_at: datetime | None = None
 
 
+class AutoAssignRequest(BaseModel):
+    reviewers_per_thesis: int = Field(default=2, ge=1, le=5)
+    max_task_limit: int = Field(default=8, ge=1, le=50)
+    reason: str | None = None
+
+
 class ReplaceRequest(BaseModel):
     new_reviewer_id: int
     reason: str | None = None

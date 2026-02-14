@@ -109,6 +109,11 @@ Admin task operation page (`/admin/tasks`) now uses task list selection flow:
 - first load and select target review task from `GET /api/admin/review-tasks`
 - then execute replace/cancel/return operations with visible thesis + reviewer context
 
+Admin assignment supports auto mode for unassigned theses:
+
+- `POST /api/admin/review-tasks/auto-assign`
+- assign reviewers automatically by existing conflict + department quota + workload rules
+
 Reviewer management APIs:
 
 - `GET /api/admin/reviewers/manage`

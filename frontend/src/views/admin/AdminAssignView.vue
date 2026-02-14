@@ -8,6 +8,8 @@ const thesisId = ref("");
 const assignReason = ref("");
 const assignResult = ref(null);
 const reviewerLimit = ref(8);
+const autoAssigning = ref(false);
+const autoReviewersPerThesis = ref(2);
 
 const reviewers = ref([]);
 const reviewerKeyword = ref("");
@@ -127,6 +129,36 @@ async function assignTasks() {
   }
 }
 
+async function autoAssignUnassigned() {
+  autoAssigning.value = true;
+  try {
+    const resp = await requestJson("/api/admin/review-tasks/auto-assign", "POST", {
+      reviewers_per_thesis: Number(autoReviewersPerThesis.value) || 2,
+      max_task_limit: Number(reviewerLimit.value) || 8,
+      reason: assignReason.value || "auto_assign_unassigned",
+    });
+    const data = resp.data || {};
+    notifySuccess(
+      `自动分配完成：论文 ${data.assigned_thesis_count || 0} 篇，任务 ${data.created_task_count || 0} 条`
+    );
+    assignResult.value = {
+      taskIds: data.created_task_ids || [],
+      thesis: null,
+      reviewerNames: [],
+      auto: {
+        assignedThesisCount: data.assigned_thesis_count || 0,
+        skippedCount: (data.skipped || []).length,
+      },
+    };
+    await loadSubmitted();
+    await loadReviewers();
+  } catch (err) {
+    notifyError(err.message || String(err));
+  } finally {
+    autoAssigning.value = false;
+  }
+}
+
 function selectThesis(id) {
   thesisId.value = String(id);
   selectedReviewerIds.value = [];
@@ -145,6 +177,9 @@ onMounted(loadSubmitted);
       <button class="accent" @click="loadSubmitted">刷新待分配论文</button>
       <button :disabled="!thesisId || loadingReviewers" @click="loadReviewers">
         {{ loadingReviewers ? "加载中..." : "刷新候选教师" }}
+      </button>
+      <button class="warn" :disabled="autoAssigning" @click="autoAssignUnassigned">
+        {{ autoAssigning ? "自动分配中..." : "自动分配未分配论文" }}
       </button>
     </div>
 
@@ -182,6 +217,10 @@ onMounted(loadSubmitted);
       <label>
         单人任务上限
         <input v-model.number="reviewerLimit" type="number" min="1" @change="loadReviewers" />
+      </label>
+      <label>
+        自动分配每篇人数
+        <input v-model.number="autoReviewersPerThesis" type="number" min="1" max="5" />
       </label>
     </div>
     <div class="row-actions" style="margin-top: 8px">
@@ -280,6 +319,8 @@ onMounted(loadSubmitted);
       <div><span>论文状态</span><b>{{ assignResult.thesis?.status || "-" }}</b></div>
       <div><span>已分配任务数</span><b>{{ assignResult.thesis?.assigned_count ?? "-" }}</b></div>
       <div><span>分配给</span><b>{{ assignResult.reviewerNames.join("，") || "-" }}</b></div>
+      <div><span>自动分配论文数</span><b>{{ assignResult.auto?.assignedThesisCount ?? "-" }}</b></div>
+      <div><span>自动分配跳过数</span><b>{{ assignResult.auto?.skippedCount ?? "-" }}</b></div>
     </div>
   </section>
 </template>
