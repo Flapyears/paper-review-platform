@@ -1,3 +1,3 @@
-from app.routers import admin, auth, files, reviewer, student
+from app.routers import admin, auth, dev, files, reviewer, student
 
-__all__ = ["admin", "auth", "files", "reviewer", "student"]
+__all__ = ["admin", "auth", "dev", "files", "reviewer", "student"]

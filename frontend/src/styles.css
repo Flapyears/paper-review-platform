@@ -551,6 +551,7 @@ button:disabled {
   right: 14px;
   bottom: 14px;
   z-index: 50;
+  max-height: calc(100vh - 28px);
 }
 
 .devtools-panel {
@@ -562,6 +563,8 @@ button:disabled {
   padding: 12px;
   box-shadow: 0 8px 20px rgba(39, 38, 33, 0.18);
   display: none;
+  max-height: min(82vh, 760px);
+  overflow: auto;
 }
 
 .devtools.opened .devtools-panel {

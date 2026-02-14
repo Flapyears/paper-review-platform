@@ -143,6 +143,21 @@ Identity switching is moved to `DevToolsDrawer` (mock user/role):
 
 - shown in development mode automatically
 - or enable with env: `VITE_ENABLE_DEVTOOLS=true`
+- supports one-click dev data generation via `/api/dev/*` endpoints
+
+## Dev Seed APIs
+
+Enabled when:
+
+- `APP_ENV != production` (default)
+- and `ENABLE_DEV_ENDPOINTS=true` (default in non-production)
+
+Endpoints:
+
+- `GET /api/dev/accounts`
+- `POST /api/dev/seed/users`
+- `POST /api/dev/seed/workflow`
+- `POST /api/dev/reset`
 
 ## Run Tests
 

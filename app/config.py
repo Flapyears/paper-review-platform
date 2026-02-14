@@ -2,6 +2,13 @@ from dataclasses import dataclass
 import os
 
 
+def _env_bool(name: str, default: bool) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
+
+
 @dataclass
 class Settings:
     database_url: str = "sqlite:///./paper_review.db"
@@ -9,6 +16,8 @@ class Settings:
     max_upload_size: int = 20 * 1024 * 1024
     allowed_extensions: tuple[str, ...] = (".pdf", ".docx")
     max_reviewers_per_department: int = 1
+    app_env: str = "development"
+    enable_dev_endpoints: bool = True
 
 
 def load_settings(
@@ -17,6 +26,8 @@ def load_settings(
     max_upload_size: int | None = None,
     max_reviewers_per_department: int | None = None,
 ) -> Settings:
+    app_env = os.getenv("APP_ENV", "development").strip().lower()
+    default_enable_dev = app_env != "production"
     return Settings(
         database_url=database_url or os.getenv("DATABASE_URL", "sqlite:///./paper_review.db"),
         storage_dir=storage_dir or os.getenv("STORAGE_DIR", "./storage"),
@@ -26,4 +37,6 @@ def load_settings(
         max_reviewers_per_department=max_reviewers_per_department
         if max_reviewers_per_department is not None
         else int(os.getenv("MAX_REVIEWERS_PER_DEPARTMENT", "1")),
+        app_env=app_env,
+        enable_dev_endpoints=_env_bool("ENABLE_DEV_ENDPOINTS", default_enable_dev),
     )

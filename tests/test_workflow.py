@@ -430,3 +430,27 @@ def test_version_no_is_per_thesis(tmp_path: Path):
     )
     assert upload2.status_code == 200
     assert upload2.json()["data"]["version_no"] == 1
+
+
+def test_dev_seed_endpoints(tmp_path: Path):
+    db_path = tmp_path / "test12.db"
+    storage_dir = tmp_path / "storage12"
+    app = create_app(database_url=f"sqlite:///{db_path}", storage_dir=str(storage_dir))
+    client = TestClient(app)
+
+    seed_users = client.post("/api/dev/seed/users", json={"students": 2, "reviewers": 2, "admins": 0})
+    assert seed_users.status_code == 200
+    assert seed_users.json()["data"]["created_count"] >= 4
+
+    seed_workflow = client.post(
+        "/api/dev/seed/workflow",
+        json={"students": 2, "reviewers": 2, "theses": 2, "assign_per_thesis": 1, "submit_thesis": True},
+    )
+    assert seed_workflow.status_code == 200
+
+    accounts = client.get("/api/dev/accounts")
+    assert accounts.status_code == 200
+    assert len(accounts.json()["items"]) >= 4
+
+    reset = client.post("/api/dev/reset", json={"reseed_defaults": True})
+    assert reset.status_code == 200

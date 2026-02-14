@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.config import load_settings
 from app.database import create_engine_and_session, create_tables, run_compat_migrations
-from app.routers import admin, auth, files, reviewer, student
+from app.routers import admin, auth, dev, files, reviewer, student
 from app.services.auth import seed_default_accounts
 
 
@@ -41,6 +41,8 @@ def create_app(
     app.include_router(admin.router)
     app.include_router(reviewer.router)
     app.include_router(files.router)
+    if settings.enable_dev_endpoints:
+        app.include_router(dev.router)
 
     frontend_dist = Path("frontend/dist")
     if (frontend_dist / "assets").exists():
