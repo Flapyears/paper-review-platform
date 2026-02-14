@@ -154,7 +154,7 @@ onMounted(loadSubmitted);
           <th>论文ID</th>
           <th>标题</th>
           <th>学生ID</th>
-          <th>版本ID</th>
+          <th>版本号</th>
           <th></th>
         </tr>
       </thead>
@@ -163,7 +163,7 @@ onMounted(loadSubmitted);
           <td>{{ row.id }}</td>
           <td>{{ row.title }}</td>
           <td>{{ row.student_id }}</td>
-          <td>{{ row.current_version_id }}</td>
+          <td>{{ row.current_version_no ? `V${row.current_version_no}` : "-" }}</td>
           <td><button @click="selectThesis(row.id)">选择</button></td>
         </tr>
       </tbody>
@@ -191,7 +191,7 @@ onMounted(loadSubmitted);
     <div v-if="selectedThesis" class="detail-grid" style="margin-top: 8px">
       <div><span>当前论文</span><b>{{ selectedThesis.title }} (#{{ selectedThesis.id }})</b></div>
       <div><span>学生ID</span><b>{{ selectedThesis.student_id }}</b></div>
-      <div><span>当前版本</span><b>{{ selectedThesis.current_version_id || "-" }}</b></div>
+      <div><span>当前版本</span><b>{{ selectedThesis.current_version_no ? `V${selectedThesis.current_version_no}` : "-" }}</b></div>
       <div><span>已分配数</span><b>{{ selectedThesis.assigned_count }}</b></div>
     </div>
 

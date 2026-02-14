@@ -44,6 +44,28 @@ def run_compat_migrations(engine) -> None:  # noqa: ANN001
     statements.append(
         "CREATE INDEX IF NOT EXISTS ix_users_student_no ON users (student_no)"
     )
+    if "thesis_versions" in inspector.get_table_names():
+        version_columns = {col["name"] for col in inspector.get_columns("thesis_versions")}
+        if "version_no" not in version_columns:
+            statements.append("ALTER TABLE thesis_versions ADD COLUMN version_no INTEGER")
+            # Backfill per-thesis version number in creation order.
+            statements.append(
+                """
+                WITH ranked AS (
+                  SELECT id,
+                         ROW_NUMBER() OVER (PARTITION BY thesis_id ORDER BY created_at ASC, id ASC) AS rn
+                  FROM thesis_versions
+                )
+                UPDATE thesis_versions
+                SET version_no = (SELECT rn FROM ranked WHERE ranked.id = thesis_versions.id)
+                WHERE version_no IS NULL
+                """
+            )
+            statements.append("UPDATE thesis_versions SET version_no = 1 WHERE version_no IS NULL")
+        statements.append(
+            "CREATE UNIQUE INDEX IF NOT EXISTS ux_thesis_versions_thesis_version_no "
+            "ON thesis_versions (thesis_id, version_no)"
+        )
 
     if not statements:
         return

@@ -105,6 +105,7 @@ class ThesisVersion(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     thesis_id: Mapped[int] = mapped_column(ForeignKey("theses.id"), nullable=False, index=True)
+    version_no: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     stage: Mapped[str] = mapped_column(String(32), nullable=False, default="final")
     file_id: Mapped[int] = mapped_column(ForeignKey("files.id"), nullable=False)
     locked_for_review: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)

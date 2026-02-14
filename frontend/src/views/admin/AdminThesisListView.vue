@@ -61,7 +61,7 @@ onMounted(loadList);
           <th>标题</th>
           <th>学生ID</th>
           <th>状态</th>
-          <th>版本ID</th>
+          <th>版本号</th>
           <th>已分配任务数</th>
           <th></th>
         </tr>
@@ -72,7 +72,7 @@ onMounted(loadList);
           <td>{{ row.title }}</td>
           <td>{{ row.student_id }}</td>
           <td>{{ row.status }}</td>
-          <td>{{ row.current_version_id || '-' }}</td>
+          <td>{{ row.current_version_no ? `V${row.current_version_no}` : '-' }}</td>
           <td>{{ row.assigned_count }}</td>
           <td><button @click="pick(row)">选择</button></td>
         </tr>

@@ -75,7 +75,7 @@ async function downloadBoundFile() {
       <div><span>任务状态</span><b>{{ detail.task.status }}</b></div>
       <div><span>论文ID</span><b>{{ detail.task.thesis_id }}</b></div>
       <div><span>论文标题</span><b>{{ detail.task.thesis_title || '-' }}</b></div>
-      <div><span>版本ID</span><b>{{ detail.task.version_id }}</b></div>
+      <div><span>版本号</span><b>{{ detail.task.version_no ? `V${detail.task.version_no}` : "-" }}</b></div>
       <div><span>下载次数</span><b>{{ detail.task.download_count }}</b></div>
       <div><span>最后下载时间</span><b>{{ detail.task.last_downloaded_at || '-' }}</b></div>
       <div><span>退回原因</span><b>{{ detail.task.return_reason || '-' }}</b></div>

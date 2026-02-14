@@ -62,6 +62,7 @@ def task_detail(
         raise HTTPException(status_code=404, detail="ReviewTask not found.")
     form = db.scalar(select(ReviewForm).where(ReviewForm.task_id == task.id))
     thesis = db.get(Thesis, task.thesis_id)
+    version = db.get(ThesisVersion, task.version_id)
     return {
         "task": {
             "id": task.id,
@@ -69,6 +70,7 @@ def task_detail(
             "thesis_id": task.thesis_id,
             "thesis_title": thesis.title if thesis else None,
             "version_id": task.version_id,
+            "version_no": version.version_no if version else None,
             "download_count": task.download_count,
             "last_downloaded_at": task.last_downloaded_at.isoformat()
             if task.last_downloaded_at
@@ -193,4 +195,3 @@ def _serialize_form(form: ReviewForm | None) -> dict | None:
         "revision_no": form.revision_no,
         "updated_at": form.updated_at.isoformat(),
     }
-

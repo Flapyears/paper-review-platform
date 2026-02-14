@@ -395,3 +395,38 @@ def test_student_can_update_advisor_in_draft_only(tmp_path: Path):
         json={"title": "Draft thesis v3", "advisor_id": 3},
     )
     assert update_submitted.status_code == 400
+
+
+def test_version_no_is_per_thesis(tmp_path: Path):
+    db_path = tmp_path / "test11.db"
+    storage_dir = tmp_path / "storage11"
+    app = create_app(database_url=f"sqlite:///{db_path}", storage_dir=str(storage_dir))
+    client = TestClient(app)
+
+    create1 = client.post(
+        "/api/thesis/my",
+        headers=_headers(501, "student"),
+        json={"title": "Paper A", "advisor_id": 3},
+    )
+    thesis1 = create1.json()["data"]["thesis_id"]
+    upload1 = client.post(
+        f"/api/thesis/{thesis1}/upload-final",
+        headers=_headers(501, "student"),
+        files={"file": ("a.pdf", b"a-v1", "application/pdf")},
+    )
+    assert upload1.status_code == 200
+    assert upload1.json()["data"]["version_no"] == 1
+
+    create2 = client.post(
+        "/api/thesis/my",
+        headers=_headers(502, "student"),
+        json={"title": "Paper B", "advisor_id": 4},
+    )
+    thesis2 = create2.json()["data"]["thesis_id"]
+    upload2 = client.post(
+        f"/api/thesis/{thesis2}/upload-final",
+        headers=_headers(502, "student"),
+        files={"file": ("b.pdf", b"b-v1", "application/pdf")},
+    )
+    assert upload2.status_code == 200
+    assert upload2.json()["data"]["version_no"] == 1

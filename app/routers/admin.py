@@ -14,6 +14,7 @@ from app.models import (
     ReviewTaskStatus,
     Thesis,
     ThesisStatus,
+    ThesisVersion,
     User,
     UserRole,
 )
@@ -504,6 +505,12 @@ def list_thesis(
         query = query.where(Thesis.status == thesis_status)
 
     theses = db.scalars(query.order_by(Thesis.created_at.desc())).all()
+    version_ids = {t.current_version_id for t in theses if t.current_version_id}
+    version_map = (
+        {v.id: v for v in db.scalars(select(ThesisVersion).where(ThesisVersion.id.in_(version_ids))).all()}
+        if version_ids
+        else {}
+    )
     rows = []
     for thesis in theses:
         assigned_count = db.scalar(
@@ -519,6 +526,11 @@ def list_thesis(
                 "student_id": thesis.student_id,
                 "status": thesis.status.value,
                 "current_version_id": thesis.current_version_id,
+                "current_version_no": (
+                    version_map[thesis.current_version_id].version_no
+                    if thesis.current_version_id and thesis.current_version_id in version_map
+                    else None
+                ),
                 "assigned_count": assigned_count or 0,
                 "created_at": thesis.created_at.isoformat(),
             }

@@ -130,6 +130,7 @@ Student thesis helper API:
 - `GET /api/thesis/advisors` for advisor dropdown options on thesis create page
 - advisor is required when creating thesis (`POST /api/thesis/my`)
 - student can update advisor only when thesis status is `DRAFT` (`PUT /api/thesis/{thesis_id}`)
+- thesis versions use per-thesis sequence `version_no` (V1, V2...), not global id
 
 ## Frontend Layouts
 

@@ -65,7 +65,7 @@ async function loadStudentWidget() {
   recentItems.value = [
     `论文标题：${thesis.title}`,
     `当前状态：${thesis.status}`,
-    `当前版本ID：${thesis.current_version_id || "-"}`,
+    `当前版本号：${thesis.current_version_no ? `V${thesis.current_version_no}` : "-"}`,
     `退回原因：${thesis.return_reason || "无"}`,
   ];
 }

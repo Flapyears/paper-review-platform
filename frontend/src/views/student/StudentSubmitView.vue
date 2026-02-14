@@ -22,7 +22,7 @@ async function uploadFinal() {
       method: "POST",
       body: form,
     });
-    notifySuccess(`终稿上传成功，版本ID: ${data?.data?.version_id || "-"}`);
+    notifySuccess(`终稿上传成功，版本号: V${data?.data?.version_no || "-"}`);
     await loadCurrent();
   } catch (err) {
     notifyError(err.message || String(err));
@@ -34,7 +34,9 @@ async function submitFinal() {
     const data = await request(`/api/thesis/${Number(thesisId.value)}/submit-final`, {
       method: "POST",
     });
-    notifySuccess(`送审提交成功，当前状态: ${data?.data?.thesis_status || "SUBMITTED"}`);
+    notifySuccess(
+      `送审提交成功，当前状态: ${data?.data?.thesis_status || "SUBMITTED"}，版本号: V${data?.data?.version_no || "-"}`
+    );
     await loadCurrent();
   } catch (err) {
     notifyError(err.message || String(err));
@@ -79,7 +81,7 @@ onMounted(loadCurrent);
     <div v-if="current" class="detail-grid">
       <div><span>论文ID</span><b>{{ current.id }}</b></div>
       <div><span>状态</span><b>{{ current.status }}</b></div>
-      <div><span>当前版本ID</span><b>{{ current.current_version_id || "-" }}</b></div>
+      <div><span>当前版本号</span><b>{{ current.current_version_no ? `V${current.current_version_no}` : "-" }}</b></div>
       <div><span>退回原因</span><b>{{ current.return_reason || "-" }}</b></div>
     </div>
   </section>

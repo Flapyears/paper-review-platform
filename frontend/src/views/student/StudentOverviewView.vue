@@ -62,7 +62,7 @@ onMounted(fetchMyThesis);
       <div><span>论文ID</span><b>{{ thesis.id }}</b></div>
       <div><span>标题</span><b>{{ thesis.title }}</b></div>
       <div><span>状态</span><b>{{ statusLabel(thesis.status) }}</b></div>
-      <div><span>当前版本ID</span><b>{{ thesis.current_version_id || "-" }}</b></div>
+      <div><span>当前版本号</span><b>{{ thesis.current_version_no ? `V${thesis.current_version_no}` : "-" }}</b></div>
       <div><span>导师ID</span><b>{{ thesis.advisor_id || "-" }}</b></div>
       <div><span>退回原因</span><b>{{ thesis.return_reason || "-" }}</b></div>
     </div>

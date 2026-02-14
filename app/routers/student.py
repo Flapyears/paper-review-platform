@@ -4,7 +4,7 @@ from pathlib import Path
 import uuid
 
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.deps import get_db, require_roles
@@ -47,7 +47,7 @@ def get_my_thesis(
     thesis = _get_my_thesis(db, user.id)
     if thesis is None:
         return {"thesis": None}
-    return {"thesis": _serialize_thesis(thesis)}
+    return {"thesis": _serialize_thesis(db, thesis)}
 
 
 @router.get("/advisors")
@@ -170,7 +170,15 @@ async def upload_final(
     db.add(file_record)
     db.flush()
 
-    version = ThesisVersion(thesis_id=thesis.id, file_id=file_record.id, stage="final")
+    next_version_no = (
+        db.scalar(select(func.max(ThesisVersion.version_no)).where(ThesisVersion.thesis_id == thesis.id)) or 0
+    ) + 1
+    version = ThesisVersion(
+        thesis_id=thesis.id,
+        version_no=next_version_no,
+        file_id=file_record.id,
+        stage="final",
+    )
     db.add(version)
     db.flush()
 
@@ -182,10 +190,13 @@ async def upload_final(
         "thesis_upload_final",
         "thesis",
         str(thesis.id),
-        payload={"version_id": version.id, "file_id": file_record.id},
+        payload={"version_id": version.id, "version_no": version.version_no, "file_id": file_record.id},
     )
     db.commit()
-    return MessageResponse(message="uploaded", data={"version_id": version.id, "file_id": file_record.id})
+    return MessageResponse(
+        message="uploaded",
+        data={"version_id": version.id, "version_no": version.version_no, "file_id": file_record.id},
+    )
 
 
 @router.post("/{thesis_id}/submit-final", response_model=MessageResponse)
@@ -214,18 +225,26 @@ def submit_final(
         "thesis_submit_final",
         "thesis",
         str(thesis.id),
-        payload={"version_id": version.id},
+        payload={"version_id": version.id, "version_no": version.version_no},
     )
     db.commit()
-    return MessageResponse(message="submitted", data={"thesis_status": thesis.status.value})
+    return MessageResponse(
+        message="submitted",
+        data={"thesis_status": thesis.status.value, "version_no": version.version_no},
+    )
 
 
-def _serialize_thesis(thesis: Thesis) -> dict:
+def _serialize_thesis(db: Session, thesis: Thesis) -> dict:
+    current_version_no = None
+    if thesis.current_version_id:
+        version = db.get(ThesisVersion, thesis.current_version_id)
+        current_version_no = version.version_no if version else None
     return {
         "id": thesis.id,
         "title": thesis.title,
         "status": thesis.status.value,
         "current_version_id": thesis.current_version_id,
+        "current_version_no": current_version_no,
         "return_reason": thesis.return_reason,
         "advisor_id": thesis.advisor_id,
     }
