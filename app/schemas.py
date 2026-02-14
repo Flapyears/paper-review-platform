@@ -53,3 +53,21 @@ class MessageResponse(BaseModel):
 class LoginRequest(BaseModel):
     username: str = Field(min_length=1, max_length=64)
     password: str = Field(min_length=1, max_length=128)
+
+
+class ReviewerCreateRequest(BaseModel):
+    username: str = Field(min_length=3, max_length=64)
+    password: str = Field(min_length=6, max_length=128)
+    name: str = Field(min_length=1, max_length=128)
+    email: str | None = Field(default=None, max_length=255)
+    department: str | None = Field(default=None, max_length=64)
+
+
+class ReviewerUpdateRequest(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=128)
+    email: str | None = Field(default=None, max_length=255)
+    department: str | None = Field(default=None, max_length=64)
+
+
+class ReviewerResetPasswordRequest(BaseModel):
+    password: str = Field(min_length=6, max_length=128)

@@ -231,3 +231,51 @@ def test_admin_review_task_list_contains_context(tmp_path: Path):
     assert row["thesis_title"] == "Paper 5"
     assert row["reviewer_id"] == 3
     assert row["reviewer_name"] is not None
+
+
+def test_admin_manage_reviewer_accounts(tmp_path: Path):
+    db_path = tmp_path / "test6.db"
+    storage_dir = tmp_path / "storage6"
+    app = create_app(database_url=f"sqlite:///{db_path}", storage_dir=str(storage_dir))
+    client = TestClient(app)
+
+    create = client.post(
+        "/api/admin/reviewers",
+        headers=_headers(2, "admin"),
+        json={
+            "username": "reviewer_new",
+            "password": "reviewer123",
+            "name": "new-reviewer",
+            "email": "new-reviewer@example.com",
+            "department": "软件系",
+        },
+    )
+    assert create.status_code == 200
+    reviewer_id = create.json()["data"]["reviewer_id"]
+
+    listing = client.get("/api/admin/reviewers/manage?q=reviewer_new", headers=_headers(2, "admin"))
+    assert listing.status_code == 200
+    row = listing.json()["items"][0]
+    assert row["id"] == reviewer_id
+    assert row["department"] == "软件系"
+
+    update = client.patch(
+        f"/api/admin/reviewers/{reviewer_id}",
+        headers=_headers(2, "admin"),
+        json={"department": "计算机系", "name": "reviewer-updated"},
+    )
+    assert update.status_code == 200
+
+    toggle = client.post(
+        f"/api/admin/reviewers/{reviewer_id}/toggle-active",
+        headers=_headers(2, "admin"),
+    )
+    assert toggle.status_code == 200
+    assert toggle.json()["data"]["is_active"] is False
+
+    reset = client.post(
+        f"/api/admin/reviewers/{reviewer_id}/reset-password",
+        headers=_headers(2, "admin"),
+        json={"password": "newpass123"},
+    )
+    assert reset.status_code == 200

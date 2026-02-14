@@ -73,6 +73,7 @@ After opening the app, use top navigation to enter role workspaces:
 - `/help`: process help
 - `/student/*`: thesis overview, thesis info, upload and submission
 - `/admin/*`: dashboard, thesis list, assignment, task operations
+- `/admin/reviewers`: reviewer account management (create/update/enable-reset)
 - `/reviewer/*`: task list, task detail/download, review form submission
 
 ## Admin Assignment Guide
@@ -106,6 +107,14 @@ Admin task operation page (`/admin/tasks`) now uses task list selection flow:
 
 - first load and select target review task from `GET /api/admin/review-tasks`
 - then execute replace/cancel/return operations with visible thesis + reviewer context
+
+Reviewer management APIs:
+
+- `GET /api/admin/reviewers/manage`
+- `POST /api/admin/reviewers`
+- `PATCH /api/admin/reviewers/{reviewer_id}`
+- `POST /api/admin/reviewers/{reviewer_id}/toggle-active`
+- `POST /api/admin/reviewers/{reviewer_id}/reset-password`
 
 ## Frontend Layouts
 

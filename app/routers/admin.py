@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.deps import get_db, require_roles
 from app.models import (
+    AuthCredential,
     ReviewForm,
     ReviewFormHistory,
     ReviewTask,
@@ -20,10 +21,14 @@ from app.schemas import (
     AssignRequest,
     CancelRequest,
     MessageResponse,
+    ReviewerCreateRequest,
+    ReviewerResetPasswordRequest,
+    ReviewerUpdateRequest,
     ReplaceRequest,
     ReturnRequest,
 )
 from app.services.audit import write_audit_log
+from app.services.auth import hash_password
 from app.services.state_machine import refresh_thesis_status_from_tasks
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
@@ -175,6 +180,161 @@ def list_reviewer_candidates(
         )
     )
     return {"items": rows}
+
+
+@router.get("/reviewers/manage")
+def list_reviewers_manage(
+    q: str | None = None,
+    department: str | None = None,
+    is_active: bool | None = None,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_roles(UserRole.ADMIN)),
+):
+    query = select(User).where(User.role == UserRole.REVIEWER)
+    if department:
+        query = query.where(User.department == department)
+    reviewers = db.scalars(query.order_by(User.id.asc())).all()
+    keyword = (q or "").strip().lower()
+    rows = []
+    for reviewer in reviewers:
+        credential = db.scalar(select(AuthCredential).where(AuthCredential.user_id == reviewer.id))
+        active = bool(credential and credential.is_active)
+        if is_active is not None and active != is_active:
+            continue
+        if keyword and keyword not in reviewer.name.lower() and keyword not in str(reviewer.id):
+            username = (credential.username if credential else "").lower()
+            if keyword not in username:
+                continue
+        active_tasks = db.scalar(
+            select(func.count(ReviewTask.id)).where(
+                ReviewTask.reviewer_id == reviewer.id,
+                ReviewTask.status.in_(
+                    [ReviewTaskStatus.ASSIGNED, ReviewTaskStatus.DRAFTING, ReviewTaskStatus.RETURNED]
+                ),
+            )
+        ) or 0
+        submitted_tasks = db.scalar(
+            select(func.count(ReviewTask.id)).where(
+                ReviewTask.reviewer_id == reviewer.id,
+                ReviewTask.status == ReviewTaskStatus.SUBMITTED,
+            )
+        ) or 0
+        rows.append(
+            {
+                "id": reviewer.id,
+                "name": reviewer.name,
+                "email": reviewer.email,
+                "department": _normalize_department(reviewer.department),
+                "username": credential.username if credential else None,
+                "is_active": active,
+                "active_task_count": active_tasks,
+                "submitted_task_count": submitted_tasks,
+                "created_at": reviewer.created_at.isoformat(),
+            }
+        )
+    return {"items": rows}
+
+
+@router.post("/reviewers", response_model=MessageResponse)
+def create_reviewer(
+    payload: ReviewerCreateRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_roles(UserRole.ADMIN)),
+):
+    username = payload.username.strip()
+    exists = db.scalar(select(AuthCredential).where(AuthCredential.username == username))
+    if exists:
+        raise HTTPException(status_code=400, detail="Username already exists.")
+    reviewer = User(
+        role=UserRole.REVIEWER,
+        name=payload.name.strip(),
+        email=(payload.email or "").strip() or None,
+        department=(payload.department or "").strip() or None,
+    )
+    db.add(reviewer)
+    db.flush()
+    credential = AuthCredential(
+        user_id=reviewer.id,
+        username=username,
+        password_hash=hash_password(payload.password),
+        is_active=True,
+    )
+    db.add(credential)
+    write_audit_log(
+        db,
+        user.id,
+        "reviewer_create",
+        "user",
+        str(reviewer.id),
+        payload={"username": username, "department": reviewer.department},
+    )
+    db.commit()
+    return MessageResponse(message="reviewer_created", data={"reviewer_id": reviewer.id})
+
+
+@router.patch("/reviewers/{reviewer_id}", response_model=MessageResponse)
+def update_reviewer(
+    reviewer_id: int,
+    payload: ReviewerUpdateRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_roles(UserRole.ADMIN)),
+):
+    reviewer = db.get(User, reviewer_id)
+    if reviewer is None or reviewer.role != UserRole.REVIEWER:
+        raise HTTPException(status_code=404, detail="Reviewer not found.")
+    if payload.name is not None:
+        reviewer.name = payload.name.strip()
+    if payload.email is not None:
+        reviewer.email = (payload.email or "").strip() or None
+    if payload.department is not None:
+        reviewer.department = (payload.department or "").strip() or None
+    write_audit_log(db, user.id, "reviewer_update", "user", str(reviewer.id))
+    db.commit()
+    return MessageResponse(message="reviewer_updated")
+
+
+@router.post("/reviewers/{reviewer_id}/toggle-active", response_model=MessageResponse)
+def toggle_reviewer_active(
+    reviewer_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_roles(UserRole.ADMIN)),
+):
+    reviewer = db.get(User, reviewer_id)
+    if reviewer is None or reviewer.role != UserRole.REVIEWER:
+        raise HTTPException(status_code=404, detail="Reviewer not found.")
+    credential = db.scalar(select(AuthCredential).where(AuthCredential.user_id == reviewer.id))
+    if credential is None:
+        raise HTTPException(status_code=404, detail="Credential not found.")
+    credential.is_active = not credential.is_active
+    write_audit_log(
+        db,
+        user.id,
+        "reviewer_toggle_active",
+        "user",
+        str(reviewer.id),
+        payload={"is_active": credential.is_active},
+    )
+    db.commit()
+    return MessageResponse(message="reviewer_active_toggled", data={"is_active": credential.is_active})
+
+
+@router.post("/reviewers/{reviewer_id}/reset-password", response_model=MessageResponse)
+def reset_reviewer_password(
+    reviewer_id: int,
+    payload: ReviewerResetPasswordRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_roles(UserRole.ADMIN)),
+):
+    reviewer = db.get(User, reviewer_id)
+    if reviewer is None or reviewer.role != UserRole.REVIEWER:
+        raise HTTPException(status_code=404, detail="Reviewer not found.")
+    credential = db.scalar(select(AuthCredential).where(AuthCredential.user_id == reviewer.id))
+    if credential is None:
+        raise HTTPException(status_code=404, detail="Credential not found.")
+    credential.password_hash = hash_password(payload.password)
+    write_audit_log(db, user.id, "reviewer_reset_password", "user", str(reviewer.id))
+    db.commit()
+    return MessageResponse(message="reviewer_password_reset")
 
 
 @router.get("/thesis")
