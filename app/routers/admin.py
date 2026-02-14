@@ -1,7 +1,7 @@
 from datetime import datetime
 import json
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -99,13 +99,18 @@ def list_reviewer_candidates(
     thesis_id: int | None = None,
     q: str | None = None,
     max_task_limit: int = 8,
+    max_per_department: int | None = Query(default=None, ge=1, le=10),
     db: Session = Depends(get_db),
     user: User = Depends(require_roles(UserRole.ADMIN)),
 ):
     thesis = db.get(Thesis, thesis_id) if thesis_id else None
     if thesis_id and thesis is None:
         raise HTTPException(status_code=404, detail="Thesis not found.")
-    max_per_department = request.app.state.settings.max_reviewers_per_department
+    max_per_department = (
+        max_per_department
+        if max_per_department is not None
+        else request.app.state.settings.max_reviewers_per_department
+    )
 
     thesis_department_counts: dict[str, int] = {}
     if thesis:
@@ -715,7 +720,11 @@ def assign_review_tasks(
     db: Session = Depends(get_db),
     user: User = Depends(require_roles(UserRole.ADMIN)),
 ):
-    max_per_department = request.app.state.settings.max_reviewers_per_department
+    max_per_department = (
+        payload.max_reviewers_per_department
+        if payload.max_reviewers_per_department is not None
+        else request.app.state.settings.max_reviewers_per_department
+    )
     created_task_ids: list[int] = []
     for item in payload.items:
         thesis = db.get(Thesis, item.thesis_id)
@@ -792,7 +801,11 @@ def auto_assign_review_tasks(
     db: Session = Depends(get_db),
     user: User = Depends(require_roles(UserRole.ADMIN)),
 ):
-    max_per_department = request.app.state.settings.max_reviewers_per_department
+    max_per_department = (
+        payload.max_reviewers_per_department
+        if payload.max_reviewers_per_department is not None
+        else request.app.state.settings.max_reviewers_per_department
+    )
     theses = db.scalars(select(Thesis).where(Thesis.status == ThesisStatus.SUBMITTED).order_by(Thesis.id.asc())).all()
     created_task_ids: list[int] = []
     assigned_thesis_ids: list[int] = []

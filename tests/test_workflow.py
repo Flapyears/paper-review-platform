@@ -198,6 +198,41 @@ def test_department_quota_limit(tmp_path: Path):
     assert success.status_code == 200
 
 
+def test_assign_department_quota_can_be_overridden_per_request(tmp_path: Path):
+    db_path = tmp_path / "test15.db"
+    storage_dir = tmp_path / "storage15"
+    app = create_app(
+        database_url=f"sqlite:///{db_path}",
+        storage_dir=str(storage_dir),
+        max_reviewers_per_department=1,
+    )
+    client = TestClient(app)
+
+    create = client.post(
+        "/api/thesis/my",
+        headers=_headers(121, "student"),
+        json={"title": "Paper 15", "advisor_id": 4},
+    )
+    thesis_id = create.json()["data"]["thesis_id"]
+    client.post(
+        f"/api/thesis/{thesis_id}/upload-final",
+        headers=_headers(121, "student"),
+        files={"file": ("paper15.pdf", b"paper-v1", "application/pdf")},
+    )
+    client.post(f"/api/thesis/{thesis_id}/submit-final", headers=_headers(121, "student"))
+
+    success = client.post(
+        "/api/admin/review-tasks/assign",
+        headers=_headers(2, "admin"),
+        json={
+            "items": [{"thesis_id": thesis_id, "reviewer_ids": [3, 5], "reason": "override-quota"}],
+            "max_reviewers_per_department": 2,
+        },
+    )
+    assert success.status_code == 200
+    assert len(success.json()["data"]["task_ids"]) == 2
+
+
 def test_admin_review_task_list_contains_context(tmp_path: Path):
     db_path = tmp_path / "test5.db"
     storage_dir = tmp_path / "storage5"

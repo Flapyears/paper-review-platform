@@ -10,6 +10,7 @@ const assignResult = ref(null);
 const reviewerLimit = ref(8);
 const autoAssigning = ref(false);
 const autoReviewersPerThesis = ref(2);
+const maxPerDepartment = ref(1);
 
 const reviewers = ref([]);
 const reviewerKeyword = ref("");
@@ -41,6 +42,7 @@ async function loadReviewers() {
     const params = new URLSearchParams();
     params.set("thesis_id", String(Number(thesisId.value)));
     params.set("max_task_limit", String(Number(reviewerLimit.value) || 8));
+    params.set("max_per_department", String(Number(maxPerDepartment.value) || 1));
     if (reviewerKeyword.value.trim()) {
       params.set("q", reviewerKeyword.value.trim());
     }
@@ -112,6 +114,7 @@ async function assignTasks() {
           reason: assignReason.value || null,
         },
       ],
+      max_reviewers_per_department: Number(maxPerDepartment.value) || 1,
     };
     const resp = await requestJson("/api/admin/review-tasks/assign", "POST", payload);
     notifySuccess(`分配成功，任务ID: ${(resp.data?.task_ids || []).join(", ")}`);
@@ -135,6 +138,7 @@ async function autoAssignUnassigned() {
     const resp = await requestJson("/api/admin/review-tasks/auto-assign", "POST", {
       reviewers_per_thesis: Number(autoReviewersPerThesis.value) || 2,
       max_task_limit: Number(reviewerLimit.value) || 8,
+      max_reviewers_per_department: Number(maxPerDepartment.value) || 1,
       reason: assignReason.value || "auto_assign_unassigned",
     });
     const data = resp.data || {};
@@ -221,6 +225,14 @@ onMounted(loadSubmitted);
       <label>
         自动分配每篇人数
         <input v-model.number="autoReviewersPerThesis" type="number" min="1" max="5" />
+      </label>
+      <label>
+        科室名额上限
+        <select v-model.number="maxPerDepartment" @change="loadReviewers">
+          <option :value="1">1</option>
+          <option :value="2">2</option>
+          <option :value="3">3</option>
+        </select>
       </label>
     </div>
     <div class="row-actions" style="margin-top: 8px">
@@ -311,6 +323,7 @@ onMounted(loadSubmitted);
     <div class="detail-grid">
       <div><span>候选教师数</span><b>{{ reviewers.length }}</b></div>
       <div><span>可分配教师数</span><b>{{ availableReviewers.length }}</b></div>
+      <div><span>当前科室名额</span><b>{{ maxPerDepartment }}</b></div>
     </div>
 
     <div v-if="assignResult" class="detail-grid">

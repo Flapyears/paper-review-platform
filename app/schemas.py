@@ -27,11 +27,13 @@ class AssignItem(BaseModel):
 class AssignRequest(BaseModel):
     items: list[AssignItem] = Field(min_length=1)
     due_at: datetime | None = None
+    max_reviewers_per_department: int | None = Field(default=None, ge=1, le=10)
 
 
 class AutoAssignRequest(BaseModel):
     reviewers_per_thesis: int = Field(default=2, ge=1, le=5)
     max_task_limit: int = Field(default=8, ge=1, le=50)
+    max_reviewers_per_department: int | None = Field(default=None, ge=1, le=10)
     reason: str | None = None
 
 
