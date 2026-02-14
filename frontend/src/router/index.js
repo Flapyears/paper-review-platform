@@ -12,6 +12,7 @@ import AdminThesisListView from "../views/admin/AdminThesisListView.vue";
 import AdminAssignView from "../views/admin/AdminAssignView.vue";
 import AdminTaskOpsView from "../views/admin/AdminTaskOpsView.vue";
 import AdminReviewerManageView from "../views/admin/AdminReviewerManageView.vue";
+import AdminStudentManageView from "../views/admin/AdminStudentManageView.vue";
 import ReviewerOverviewView from "../views/reviewer/ReviewerOverviewView.vue";
 import ReviewerTaskDetailView from "../views/reviewer/ReviewerTaskDetailView.vue";
 import ReviewerFormSubmitView from "../views/reviewer/ReviewerFormSubmitView.vue";
@@ -59,6 +60,7 @@ const routes = [
           { path: "assign", component: AdminAssignView },
           { path: "tasks", component: AdminTaskOpsView },
           { path: "reviewers", component: AdminReviewerManageView },
+          { path: "students", component: AdminStudentManageView },
         ],
       },
       {

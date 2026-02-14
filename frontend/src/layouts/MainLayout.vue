@@ -38,6 +38,7 @@ const sideMenu = computed(() => {
       { to: "/admin/assign", label: "分配评阅" },
       { to: "/admin/tasks", label: "任务操作" },
       { to: "/admin/reviewers", label: "教师管理" },
+      { to: "/admin/students", label: "学生管理" },
       { to: "/help", label: "帮助" },
     ];
   }

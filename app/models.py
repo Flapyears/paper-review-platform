@@ -40,6 +40,7 @@ class User(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     role: Mapped[UserRole] = mapped_column(SAEnum(UserRole), nullable=False)
     name: Mapped[str] = mapped_column(String(128), nullable=False)
+    student_no: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
     email: Mapped[str | None] = mapped_column(String(255), nullable=True)
     department: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)

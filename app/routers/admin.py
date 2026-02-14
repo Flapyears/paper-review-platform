@@ -24,6 +24,9 @@ from app.schemas import (
     ReviewerCreateRequest,
     ReviewerResetPasswordRequest,
     ReviewerUpdateRequest,
+    StudentCreateRequest,
+    StudentResetPasswordRequest,
+    StudentUpdateRequest,
     ReplaceRequest,
     ReturnRequest,
 )
@@ -335,6 +338,155 @@ def reset_reviewer_password(
     write_audit_log(db, user.id, "reviewer_reset_password", "user", str(reviewer.id))
     db.commit()
     return MessageResponse(message="reviewer_password_reset")
+
+
+@router.get("/students/manage")
+def list_students_manage(
+    q: str | None = None,
+    is_active: bool | None = None,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_roles(UserRole.ADMIN)),
+):
+    students = db.scalars(select(User).where(User.role == UserRole.STUDENT).order_by(User.id.asc())).all()
+    keyword = (q or "").strip().lower()
+    rows = []
+    for student in students:
+        credential = db.scalar(select(AuthCredential).where(AuthCredential.user_id == student.id))
+        active = bool(credential and credential.is_active)
+        if is_active is not None and active != is_active:
+            continue
+        if keyword:
+            username = (credential.username if credential else "").lower()
+            if (
+                keyword not in student.name.lower()
+                and keyword not in str(student.id)
+                and keyword not in (student.student_no or "").lower()
+                and keyword not in username
+            ):
+                continue
+        thesis_count = db.scalar(select(func.count(Thesis.id)).where(Thesis.student_id == student.id)) or 0
+        rows.append(
+            {
+                "id": student.id,
+                "name": student.name,
+                "student_no": student.student_no,
+                "email": student.email,
+                "username": credential.username if credential else None,
+                "is_active": active,
+                "thesis_count": thesis_count,
+                "created_at": student.created_at.isoformat(),
+            }
+        )
+    return {"items": rows}
+
+
+@router.post("/students", response_model=MessageResponse)
+def create_student(
+    payload: StudentCreateRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_roles(UserRole.ADMIN)),
+):
+    username = payload.username.strip()
+    if db.scalar(select(AuthCredential).where(AuthCredential.username == username)):
+        raise HTTPException(status_code=400, detail="Username already exists.")
+    student_no = (payload.student_no or "").strip() or None
+    if student_no and db.scalar(select(User).where(User.student_no == student_no)):
+        raise HTTPException(status_code=400, detail="Student number already exists.")
+    student = User(
+        role=UserRole.STUDENT,
+        name=payload.name.strip(),
+        student_no=student_no,
+        email=(payload.email or "").strip() or None,
+    )
+    db.add(student)
+    db.flush()
+    credential = AuthCredential(
+        user_id=student.id,
+        username=username,
+        password_hash=hash_password(payload.password),
+        is_active=True,
+    )
+    db.add(credential)
+    write_audit_log(
+        db,
+        user.id,
+        "student_create",
+        "user",
+        str(student.id),
+        payload={"username": username, "student_no": student.student_no},
+    )
+    db.commit()
+    return MessageResponse(message="student_created", data={"student_id": student.id})
+
+
+@router.patch("/students/{student_id}", response_model=MessageResponse)
+def update_student(
+    student_id: int,
+    payload: StudentUpdateRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_roles(UserRole.ADMIN)),
+):
+    student = db.get(User, student_id)
+    if student is None or student.role != UserRole.STUDENT:
+        raise HTTPException(status_code=404, detail="Student not found.")
+    if payload.name is not None:
+        student.name = payload.name.strip()
+    if payload.student_no is not None:
+        student_no = (payload.student_no or "").strip() or None
+        if student_no:
+            conflict = db.scalar(select(User).where(User.student_no == student_no, User.id != student.id))
+            if conflict:
+                raise HTTPException(status_code=400, detail="Student number already exists.")
+        student.student_no = student_no
+    if payload.email is not None:
+        student.email = (payload.email or "").strip() or None
+    write_audit_log(db, user.id, "student_update", "user", str(student.id))
+    db.commit()
+    return MessageResponse(message="student_updated")
+
+
+@router.post("/students/{student_id}/toggle-active", response_model=MessageResponse)
+def toggle_student_active(
+    student_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_roles(UserRole.ADMIN)),
+):
+    student = db.get(User, student_id)
+    if student is None or student.role != UserRole.STUDENT:
+        raise HTTPException(status_code=404, detail="Student not found.")
+    credential = db.scalar(select(AuthCredential).where(AuthCredential.user_id == student.id))
+    if credential is None:
+        raise HTTPException(status_code=404, detail="Credential not found.")
+    credential.is_active = not credential.is_active
+    write_audit_log(
+        db,
+        user.id,
+        "student_toggle_active",
+        "user",
+        str(student.id),
+        payload={"is_active": credential.is_active},
+    )
+    db.commit()
+    return MessageResponse(message="student_active_toggled", data={"is_active": credential.is_active})
+
+
+@router.post("/students/{student_id}/reset-password", response_model=MessageResponse)
+def reset_student_password(
+    student_id: int,
+    payload: StudentResetPasswordRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_roles(UserRole.ADMIN)),
+):
+    student = db.get(User, student_id)
+    if student is None or student.role != UserRole.STUDENT:
+        raise HTTPException(status_code=404, detail="Student not found.")
+    credential = db.scalar(select(AuthCredential).where(AuthCredential.user_id == student.id))
+    if credential is None:
+        raise HTTPException(status_code=404, detail="Credential not found.")
+    credential.password_hash = hash_password(payload.password)
+    write_audit_log(db, user.id, "student_reset_password", "user", str(student.id))
+    db.commit()
+    return MessageResponse(message="student_password_reset")
 
 
 @router.get("/thesis")

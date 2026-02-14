@@ -71,3 +71,21 @@ class ReviewerUpdateRequest(BaseModel):
 
 class ReviewerResetPasswordRequest(BaseModel):
     password: str = Field(min_length=6, max_length=128)
+
+
+class StudentCreateRequest(BaseModel):
+    username: str = Field(min_length=3, max_length=64)
+    password: str = Field(min_length=6, max_length=128)
+    name: str = Field(min_length=1, max_length=128)
+    student_no: str | None = Field(default=None, max_length=64)
+    email: str | None = Field(default=None, max_length=255)
+
+
+class StudentUpdateRequest(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=128)
+    student_no: str | None = Field(default=None, max_length=64)
+    email: str | None = Field(default=None, max_length=255)
+
+
+class StudentResetPasswordRequest(BaseModel):
+    password: str = Field(min_length=6, max_length=128)

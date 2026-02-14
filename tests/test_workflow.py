@@ -279,3 +279,51 @@ def test_admin_manage_reviewer_accounts(tmp_path: Path):
         json={"password": "newpass123"},
     )
     assert reset.status_code == 200
+
+
+def test_admin_manage_student_accounts(tmp_path: Path):
+    db_path = tmp_path / "test7.db"
+    storage_dir = tmp_path / "storage7"
+    app = create_app(database_url=f"sqlite:///{db_path}", storage_dir=str(storage_dir))
+    client = TestClient(app)
+
+    create = client.post(
+        "/api/admin/students",
+        headers=_headers(2, "admin"),
+        json={
+            "username": "student_new",
+            "password": "student123",
+            "name": "new-student",
+            "student_no": "20260001",
+            "email": "new-student@example.com",
+        },
+    )
+    assert create.status_code == 200
+    student_id = create.json()["data"]["student_id"]
+
+    listing = client.get("/api/admin/students/manage?q=20260001", headers=_headers(2, "admin"))
+    assert listing.status_code == 200
+    row = listing.json()["items"][0]
+    assert row["id"] == student_id
+    assert row["student_no"] == "20260001"
+
+    update = client.patch(
+        f"/api/admin/students/{student_id}",
+        headers=_headers(2, "admin"),
+        json={"student_no": "20260002", "name": "student-updated"},
+    )
+    assert update.status_code == 200
+
+    toggle = client.post(
+        f"/api/admin/students/{student_id}/toggle-active",
+        headers=_headers(2, "admin"),
+    )
+    assert toggle.status_code == 200
+    assert toggle.json()["data"]["is_active"] is False
+
+    reset = client.post(
+        f"/api/admin/students/{student_id}/reset-password",
+        headers=_headers(2, "admin"),
+        json={"password": "newpass123"},
+    )
+    assert reset.status_code == 200

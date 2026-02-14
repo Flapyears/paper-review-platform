@@ -36,8 +36,13 @@ def run_compat_migrations(engine) -> None:  # noqa: ANN001
     statements: list[str] = []
     if "department" not in user_columns:
         statements.append("ALTER TABLE users ADD COLUMN department VARCHAR(64)")
+    if "student_no" not in user_columns:
+        statements.append("ALTER TABLE users ADD COLUMN student_no VARCHAR(64)")
     statements.append(
         "CREATE INDEX IF NOT EXISTS ix_users_department ON users (department)"
+    )
+    statements.append(
+        "CREATE INDEX IF NOT EXISTS ix_users_student_no ON users (student_no)"
     )
 
     if not statements:

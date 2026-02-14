@@ -74,6 +74,7 @@ After opening the app, use top navigation to enter role workspaces:
 - `/student/*`: thesis overview, thesis info, upload and submission
 - `/admin/*`: dashboard, thesis list, assignment, task operations
 - `/admin/reviewers`: reviewer account management (create/update/enable-reset)
+- `/admin/students`: student account management (create/update/enable-reset)
 - `/reviewer/*`: task list, task detail/download, review form submission
 
 ## Admin Assignment Guide
@@ -115,6 +116,14 @@ Reviewer management APIs:
 - `PATCH /api/admin/reviewers/{reviewer_id}`
 - `POST /api/admin/reviewers/{reviewer_id}/toggle-active`
 - `POST /api/admin/reviewers/{reviewer_id}/reset-password`
+
+Student management APIs:
+
+- `GET /api/admin/students/manage`
+- `POST /api/admin/students`
+- `PATCH /api/admin/students/{student_id}`
+- `POST /api/admin/students/{student_id}/toggle-active`
+- `POST /api/admin/students/{student_id}/reset-password`
 
 ## Frontend Layouts
 
