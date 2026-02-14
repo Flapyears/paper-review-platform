@@ -20,6 +20,7 @@ const seedForm = ref({
   students: 10,
   reviewers: 10,
   theses: 10,
+  studentThesisStatus: "NO_THESIS",
 });
 
 const staticPresets = [
@@ -80,6 +81,7 @@ async function seedUsers() {
       students: Number(seedForm.value.students) || 0,
       reviewers: Number(seedForm.value.reviewers) || 0,
       admins: 0,
+      student_thesis_status: seedForm.value.studentThesisStatus,
     });
     notifySuccess(`已生成账号 ${resp.data?.created_count || 0} 个`);
     await loadAccounts();
@@ -179,6 +181,14 @@ onMounted(loadAccounts);
         <label>
           论文数
           <input v-model.number="seedForm.theses" type="number" min="1" />
+        </label>
+        <label>
+          学生论文状态（生成账号）
+          <select v-model="seedForm.studentThesisStatus">
+            <option value="NO_THESIS">不创建论文</option>
+            <option value="FINAL_UPLOADED">仅终稿已上传（未请求审阅）</option>
+            <option value="REVIEW_REQUESTED">已请求审阅（SUBMITTED）</option>
+          </select>
         </label>
       </div>
       <div class="row-actions">

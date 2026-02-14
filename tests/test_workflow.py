@@ -438,9 +438,22 @@ def test_dev_seed_endpoints(tmp_path: Path):
     app = create_app(database_url=f"sqlite:///{db_path}", storage_dir=str(storage_dir))
     client = TestClient(app)
 
-    seed_users = client.post("/api/dev/seed/users", json={"students": 2, "reviewers": 2, "admins": 0})
+    seed_users = client.post(
+        "/api/dev/seed/users",
+        json={
+            "students": 2,
+            "reviewers": 2,
+            "admins": 0,
+            "student_thesis_status": "REVIEW_REQUESTED",
+        },
+    )
     assert seed_users.status_code == 200
     assert seed_users.json()["data"]["created_count"] >= 4
+    assert seed_users.json()["data"]["student_thesis_status"] == "REVIEW_REQUESTED"
+
+    submitted = client.get("/api/admin/thesis?status=SUBMITTED", headers=_headers(2, "admin"))
+    assert submitted.status_code == 200
+    assert len(submitted.json()["items"]) >= 2
 
     seed_workflow = client.post(
         "/api/dev/seed/workflow",

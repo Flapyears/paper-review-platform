@@ -159,6 +159,12 @@ Endpoints:
 - `POST /api/dev/seed/workflow`
 - `POST /api/dev/reset`
 
+`POST /api/dev/seed/users` supports `student_thesis_status`:
+
+- `NO_THESIS`
+- `FINAL_UPLOADED`
+- `REVIEW_REQUESTED`
+
 ## Run Tests
 
 ```bash

@@ -1,4 +1,5 @@
 from datetime import datetime
+from enum import Enum
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -29,6 +30,7 @@ class SeedUsersRequest(BaseModel):
     students: int = Field(default=10, ge=0, le=500)
     reviewers: int = Field(default=10, ge=0, le=500)
     admins: int = Field(default=0, ge=0, le=20)
+    student_thesis_status: str = "NO_THESIS"
 
 
 class SeedWorkflowRequest(BaseModel):
@@ -41,6 +43,12 @@ class SeedWorkflowRequest(BaseModel):
 
 class ResetRequest(BaseModel):
     reseed_defaults: bool = True
+
+
+class StudentThesisSeedStatus(str, Enum):
+    NO_THESIS = "NO_THESIS"
+    FINAL_UPLOADED = "FINAL_UPLOADED"
+    REVIEW_REQUESTED = "REVIEW_REQUESTED"
 
 
 def _require_dev_enabled(request: Request) -> None:
@@ -121,21 +129,13 @@ def seed_users(
     db: Session = Depends(get_db),
 ):
     _require_dev_enabled(request)
+    try:
+        thesis_seed_status = StudentThesisSeedStatus(payload.student_thesis_status)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Invalid student_thesis_status.") from exc
     created: list[dict] = []
     departments = ["计算机系", "软件系", "信息工程系"]
-
-    for _ in range(payload.students):
-        username = _next_username(db, "student")
-        student_no = f"2026{username.replace('student', '').zfill(4)}"
-        user = _create_user_with_credential(
-            db,
-            role=UserRole.STUDENT,
-            name=username,
-            username=username,
-            password="student123",
-            student_no=student_no,
-        )
-        created.append({"user_id": user.id, "username": username, "role": user.role.value})
+    created_students: list[User] = []
 
     for i in range(payload.reviewers):
         username = _next_username(db, "reviewer")
@@ -150,6 +150,24 @@ def seed_users(
         )
         created.append({"user_id": user.id, "username": username, "role": user.role.value})
 
+    reviewers = db.scalars(select(User).where(User.role == UserRole.REVIEWER).order_by(User.id.asc())).all()
+    if thesis_seed_status != StudentThesisSeedStatus.NO_THESIS and not reviewers:
+        raise HTTPException(status_code=400, detail="No reviewers available for advisor assignment.")
+
+    for i in range(payload.students):
+        username = _next_username(db, "student")
+        student_no = f"2026{username.replace('student', '').zfill(4)}"
+        user = _create_user_with_credential(
+            db,
+            role=UserRole.STUDENT,
+            name=username,
+            username=username,
+            password="student123",
+            student_no=student_no,
+        )
+        created_students.append(user)
+        created.append({"user_id": user.id, "username": username, "role": user.role.value})
+
     for _ in range(payload.admins):
         username = _next_username(db, "admin")
         user = _create_user_with_credential(
@@ -161,8 +179,58 @@ def seed_users(
         )
         created.append({"user_id": user.id, "username": username, "role": user.role.value})
 
+    if thesis_seed_status != StudentThesisSeedStatus.NO_THESIS:
+        storage_dir = Path(request.app.state.settings.storage_dir)
+        storage_dir.mkdir(parents=True, exist_ok=True)
+        for i, student in enumerate(created_students):
+            advisor = reviewers[i % len(reviewers)]
+            thesis = Thesis(
+                student_id=student.id,
+                advisor_id=advisor.id,
+                title=f"示例论文-{student.name}",
+                status=ThesisStatus.DRAFT,
+            )
+            db.add(thesis)
+            db.flush()
+
+            version_no = 1
+            filename = f"seed-student-{student.id}-v{version_no}.pdf"
+            file_path = storage_dir / filename
+            file_path.write_bytes(b"%PDF-1.4\n% Seed file for dev users.\n")
+            file_record = FileRecord(
+                storage_path=str(file_path.resolve()),
+                original_name=filename,
+                sha256=f"seed-user-{student.id}-{version_no}",
+                mime="application/pdf",
+                size=file_path.stat().st_size,
+                uploaded_by=student.id,
+            )
+            db.add(file_record)
+            db.flush()
+
+            submit_thesis = thesis_seed_status == StudentThesisSeedStatus.REVIEW_REQUESTED
+            version = ThesisVersion(
+                thesis_id=thesis.id,
+                version_no=version_no,
+                stage="final",
+                file_id=file_record.id,
+                locked_for_review=submit_thesis,
+                submitted_at=datetime.utcnow() if submit_thesis else None,
+            )
+            db.add(version)
+            db.flush()
+            thesis.current_version_id = version.id
+            thesis.status = ThesisStatus.SUBMITTED if submit_thesis else ThesisStatus.DRAFT
+
     db.commit()
-    return MessageResponse(message="seed_users_done", data={"created_count": len(created), "created": created})
+    return MessageResponse(
+        message="seed_users_done",
+        data={
+            "created_count": len(created),
+            "created": created,
+            "student_thesis_status": thesis_seed_status.value,
+        },
+    )
 
 
 @router.post("/seed/workflow", response_model=MessageResponse)
