@@ -1,5 +1,5 @@
 ﻿<script setup>
-import { ref } from "vue";
+import { onMounted, ref } from "vue";
 import { request } from "../../services/api";
 import { notifyError, notifySuccess } from "../../stores/notice";
 
@@ -7,7 +7,7 @@ const summary = ref({ submittedCount: 0, inReviewCount: 0, doneCount: 0 });
 const progressRows = ref([]);
 const loading = ref(false);
 
-async function refreshDashboard() {
+async function refreshDashboard(showToast = true) {
   loading.value = true;
   try {
     const thesisResp = await request("/api/admin/thesis");
@@ -20,13 +20,19 @@ async function refreshDashboard() {
       doneCount: list.filter((x) => x.status === "REVIEW_DONE").length,
     };
     progressRows.value = progressResp.items || [];
-    notifySuccess("管理员看板已刷新");
+    if (showToast) {
+      notifySuccess("管理员看板已刷新");
+    }
   } catch (err) {
     notifyError(err.message || String(err));
   } finally {
     loading.value = false;
   }
 }
+
+onMounted(() => {
+  refreshDashboard(false);
+});
 </script>
 
 <template>
