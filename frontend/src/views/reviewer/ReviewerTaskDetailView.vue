@@ -1,5 +1,5 @@
-﻿<script setup>
-import { ref, watchEffect } from "vue";
+<script setup>
+import { computed, ref, watch } from "vue";
 import { request } from "../../services/api";
 import { authHeaders } from "../../stores/auth";
 import { notifyError, notifySuccess } from "../../stores/notice";
@@ -8,25 +8,34 @@ import { useRoute } from "vue-router";
 const taskId = ref("");
 const detail = ref(null);
 const route = useRoute();
+const loading = ref(false);
 
-watchEffect(() => {
-  const queryTaskId = route.query.taskId;
-  if (queryTaskId) {
-    taskId.value = String(queryTaskId);
+const canOperate = computed(() => Number(taskId.value) > 0);
+
+async function loadTaskDetail(showToast = true) {
+  if (!canOperate.value) {
+    notifyError("请先从任务列表进入，或输入有效任务ID");
+    return;
   }
-});
-
-async function loadTaskDetail() {
+  loading.value = true;
   try {
     const resp = await request(`/api/reviewer/tasks/${Number(taskId.value)}`);
     detail.value = resp;
-    notifySuccess("任务详情已加载");
+    if (showToast) {
+      notifySuccess("任务详情已加载");
+    }
   } catch (err) {
     notifyError(err.message || String(err));
+  } finally {
+    loading.value = false;
   }
 }
 
 async function downloadBoundFile() {
+  if (!canOperate.value) {
+    notifyError("请先加载任务详情");
+    return;
+  }
   try {
     const response = await fetch(`/api/reviewer/tasks/${Number(taskId.value)}/download`, {
       method: "GET",
@@ -53,11 +62,24 @@ async function downloadBoundFile() {
     notifyError(err.message || String(err));
   }
 }
+
+watch(
+  () => route.query.taskId,
+  async (queryTaskId) => {
+    if (!queryTaskId) {
+      return;
+    }
+    taskId.value = String(queryTaskId);
+    await loadTaskDetail(false);
+  },
+  { immediate: true }
+);
 </script>
 
 <template>
   <section class="panel-card">
     <h4>任务详情与下载</h4>
+    <p class="muted">建议从“我的任务列表”点击“打开详情”进入，本页会自动加载任务信息。</p>
 
     <div class="form-grid three">
       <label>
@@ -67,8 +89,10 @@ async function downloadBoundFile() {
     </div>
 
     <div class="row-actions">
-      <button class="accent" @click="loadTaskDetail">查看详情</button>
-      <button @click="downloadBoundFile">下载论文</button>
+      <button class="accent" :disabled="!canOperate || loading" @click="loadTaskDetail">
+        {{ loading ? "加载中..." : "查看详情" }}
+      </button>
+      <button :disabled="!canOperate" @click="downloadBoundFile">下载论文</button>
     </div>
 
     <div v-if="detail?.task" class="detail-grid">
