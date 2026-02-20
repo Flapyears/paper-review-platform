@@ -1,11 +1,19 @@
 ﻿<script setup>
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { request } from "../../services/api";
 import { notifyError, notifySuccess } from "../../stores/notice";
+import PaginationBar from "../../components/common/PaginationBar.vue";
 
 const summary = ref({ submittedCount: 0, inReviewCount: 0, doneCount: 0 });
 const progressRows = ref([]);
 const loading = ref(false);
+const page = ref(1);
+const pageSize = ref(10);
+
+const pagedProgressRows = computed(() => {
+  const start = (page.value - 1) * pageSize.value;
+  return progressRows.value.slice(start, start + pageSize.value);
+});
 
 async function refreshDashboard(showToast = true) {
   loading.value = true;
@@ -20,6 +28,7 @@ async function refreshDashboard(showToast = true) {
       doneCount: list.filter((x) => x.status === "REVIEW_DONE").length,
     };
     progressRows.value = progressResp.items || [];
+    page.value = 1;
     if (showToast) {
       notifySuccess("管理员看板已刷新");
     }
@@ -72,7 +81,7 @@ onMounted(() => {
         </tr>
       </thead>
       <tbody>
-        <tr v-for="row in progressRows" :key="row.thesis_id">
+        <tr v-for="row in pagedProgressRows" :key="row.thesis_id">
           <td>{{ row.thesis_id }}</td>
           <td>{{ row.thesis_status }}</td>
           <td>{{ row.total_active_tasks }}</td>
@@ -81,5 +90,6 @@ onMounted(() => {
         </tr>
       </tbody>
     </table>
+    <PaginationBar v-model:current="page" v-model:pageSize="pageSize" :total="progressRows.length" />
   </section>
 </template>

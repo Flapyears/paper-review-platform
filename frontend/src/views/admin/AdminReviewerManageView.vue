@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from "vue";
 import { request, requestJson } from "../../services/api";
 import { notifyError, notifySuccess } from "../../stores/notice";
+import PaginationBar from "../../components/common/PaginationBar.vue";
 
 const reviewers = ref([]);
 const loading = ref(false);
@@ -9,6 +10,8 @@ const keyword = ref("");
 const activeFilter = ref("ALL");
 const selectedId = ref("");
 const resetPassword = ref("");
+const page = ref(1);
+const pageSize = ref(10);
 
 const createForm = ref({
   username: "",
@@ -25,6 +28,10 @@ const editForm = ref({
 });
 
 const selectedReviewer = computed(() => reviewers.value.find((x) => x.id === Number(selectedId.value)) || null);
+const pagedReviewers = computed(() => {
+  const start = (page.value - 1) * pageSize.value;
+  return reviewers.value.slice(start, start + pageSize.value);
+});
 
 async function loadReviewers() {
   loading.value = true;
@@ -36,6 +43,7 @@ async function loadReviewers() {
     const path = params.size ? `/api/admin/reviewers/manage?${params.toString()}` : "/api/admin/reviewers/manage";
     const resp = await request(path);
     reviewers.value = resp.items || [];
+    page.value = 1;
     if (selectedId.value) {
       const target = reviewers.value.find((x) => x.id === Number(selectedId.value));
       if (target) {
@@ -162,7 +170,7 @@ onMounted(loadReviewers);
         </tr>
       </thead>
       <tbody>
-        <tr v-for="row in reviewers" :key="row.id" :class="{ active: selectedId === String(row.id) }">
+        <tr v-for="row in pagedReviewers" :key="row.id" :class="{ active: selectedId === String(row.id) }">
           <td>#{{ row.id }}</td>
           <td>{{ row.name }}</td>
           <td>{{ row.username || "-" }}</td>
@@ -174,7 +182,8 @@ onMounted(loadReviewers);
         </tr>
       </tbody>
     </table>
-    <div v-else class="empty-box">暂无评阅教师数据。</div>
+    <PaginationBar v-model:current="page" v-model:pageSize="pageSize" :total="reviewers.length" />
+    <div v-if="!reviewers.length" class="empty-box">暂无评阅教师数据。</div>
 
     <h4 style="margin-top: 16px">新增评阅教师</h4>
     <div class="form-grid">

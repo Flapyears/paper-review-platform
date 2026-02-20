@@ -1,18 +1,27 @@
 ﻿<script setup>
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { request, requestJson } from "../../services/api";
 import { notifyError, notifySuccess } from "../../stores/notice";
+import PaginationBar from "../../components/common/PaginationBar.vue";
 
 const statusFilter = ref("ALL");
 const theses = ref([]);
 const selectedId = ref("");
 const reason = ref("");
+const page = ref(1);
+const pageSize = ref(10);
+
+const pagedTheses = computed(() => {
+  const start = (page.value - 1) * pageSize.value;
+  return theses.value.slice(start, start + pageSize.value);
+});
 
 async function loadList() {
   try {
     const path = statusFilter.value === "ALL" ? "/api/admin/thesis" : `/api/admin/thesis?status=${statusFilter.value}`;
     const resp = await request(path);
     theses.value = resp.items || [];
+    page.value = 1;
     notifySuccess("论文列表已刷新");
   } catch (err) {
     notifyError(err.message || String(err));
@@ -67,7 +76,7 @@ onMounted(loadList);
         </tr>
       </thead>
       <tbody>
-        <tr v-for="row in theses" :key="row.id">
+        <tr v-for="row in pagedTheses" :key="row.id">
           <td>{{ row.id }}</td>
           <td>{{ row.title }}</td>
           <td>{{ row.student_id }}</td>
@@ -78,6 +87,7 @@ onMounted(loadList);
         </tr>
       </tbody>
     </table>
+    <PaginationBar v-model:current="page" v-model:pageSize="pageSize" :total="theses.length" />
 
     <div class="form-grid three" style="margin-top: 12px">
       <label>

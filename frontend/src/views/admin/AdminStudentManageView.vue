@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from "vue";
 import { request, requestJson } from "../../services/api";
 import { notifyError, notifySuccess } from "../../stores/notice";
+import PaginationBar from "../../components/common/PaginationBar.vue";
 
 const students = ref([]);
 const loading = ref(false);
@@ -9,6 +10,8 @@ const keyword = ref("");
 const activeFilter = ref("ALL");
 const selectedId = ref("");
 const resetPassword = ref("");
+const page = ref(1);
+const pageSize = ref(10);
 
 const createForm = ref({
   username: "",
@@ -25,6 +28,10 @@ const editForm = ref({
 });
 
 const selectedStudent = computed(() => students.value.find((x) => x.id === Number(selectedId.value)) || null);
+const pagedStudents = computed(() => {
+  const start = (page.value - 1) * pageSize.value;
+  return students.value.slice(start, start + pageSize.value);
+});
 
 async function loadStudents() {
   loading.value = true;
@@ -36,6 +43,7 @@ async function loadStudents() {
     const path = params.size ? `/api/admin/students/manage?${params.toString()}` : "/api/admin/students/manage";
     const resp = await request(path);
     students.value = resp.items || [];
+    page.value = 1;
     if (selectedId.value) {
       const target = students.value.find((x) => x.id === Number(selectedId.value));
       if (target) {
@@ -161,7 +169,7 @@ onMounted(loadStudents);
         </tr>
       </thead>
       <tbody>
-        <tr v-for="row in students" :key="row.id" :class="{ active: selectedId === String(row.id) }">
+        <tr v-for="row in pagedStudents" :key="row.id" :class="{ active: selectedId === String(row.id) }">
           <td>#{{ row.id }}</td>
           <td>{{ row.name }}</td>
           <td>{{ row.student_no || "-" }}</td>
@@ -172,7 +180,8 @@ onMounted(loadStudents);
         </tr>
       </tbody>
     </table>
-    <div v-else class="empty-box">暂无学生数据。</div>
+    <PaginationBar v-model:current="page" v-model:pageSize="pageSize" :total="students.length" />
+    <div v-if="!students.length" class="empty-box">暂无学生数据。</div>
 
     <h4 style="margin-top: 16px">新增学生账号</h4>
     <div class="form-grid">

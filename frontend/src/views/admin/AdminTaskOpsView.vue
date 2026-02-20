@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from "vue";
 import { request, requestJson } from "../../services/api";
 import { notifyError, notifySuccess } from "../../stores/notice";
+import PaginationBar from "../../components/common/PaginationBar.vue";
 
 const loading = ref(false);
 const tasks = ref([]);
@@ -14,6 +15,13 @@ const reviewerFilter = ref("");
 const candidates = ref([]);
 const loadingCandidates = ref(false);
 const newReviewerId = ref("");
+const page = ref(1);
+const pageSize = ref(10);
+
+const pagedTasks = computed(() => {
+  const start = (page.value - 1) * pageSize.value;
+  return tasks.value.slice(start, start + pageSize.value);
+});
 
 const selectedTask = computed(() => tasks.value.find((x) => x.task_id === Number(selectedTaskId.value)) || null);
 
@@ -48,6 +56,7 @@ async function loadTasks() {
     const path = params.size ? `/api/admin/review-tasks?${params.toString()}` : "/api/admin/review-tasks";
     const resp = await request(path);
     tasks.value = resp.items || [];
+    page.value = 1;
     if (selectedTaskId.value) {
       const exists = tasks.value.some((x) => x.task_id === Number(selectedTaskId.value));
       if (!exists) {
@@ -176,7 +185,7 @@ onMounted(loadTasks);
         </tr>
       </thead>
       <tbody>
-        <tr v-for="row in tasks" :key="row.task_id" :class="{ active: selectedTaskId === String(row.task_id) }">
+        <tr v-for="row in pagedTasks" :key="row.task_id" :class="{ active: selectedTaskId === String(row.task_id) }">
           <td>#{{ row.task_id }}</td>
           <td>{{ row.thesis_title || "-" }} (#{{ row.thesis_id }})</td>
           <td>
@@ -189,7 +198,8 @@ onMounted(loadTasks);
         </tr>
       </tbody>
     </table>
-    <div v-else class="empty-box">暂无任务，请调整筛选条件后重试。</div>
+    <PaginationBar v-model:current="page" v-model:pageSize="pageSize" :total="tasks.length" />
+    <div v-if="!tasks.length" class="empty-box">暂无任务，请调整筛选条件后重试。</div>
 
     <div v-if="selectedTask" class="detail-grid">
       <div><span>当前任务</span><b>#{{ selectedTask.task_id }}</b></div>

@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from "vue";
 import { request, requestJson } from "../../services/api";
 import { notifyError, notifySuccess } from "../../stores/notice";
+import PaginationBar from "../../components/common/PaginationBar.vue";
 
 const submittedTheses = ref([]);
 const thesisId = ref("");
@@ -16,11 +17,26 @@ const reviewers = ref([]);
 const reviewerKeyword = ref("");
 const loadingReviewers = ref(false);
 const selectedReviewerIds = ref([]);
+const thesisPage = ref(1);
+const thesisPageSize = ref(10);
+const reviewerPage = ref(1);
+const reviewerPageSize = ref(10);
+
+const pagedSubmittedTheses = computed(() => {
+  const start = (thesisPage.value - 1) * thesisPageSize.value;
+  return submittedTheses.value.slice(start, start + thesisPageSize.value);
+});
+
+const pagedReviewers = computed(() => {
+  const start = (reviewerPage.value - 1) * reviewerPageSize.value;
+  return reviewers.value.slice(start, start + reviewerPageSize.value);
+});
 
 async function loadSubmitted() {
   try {
     const resp = await request("/api/admin/thesis?status=SUBMITTED");
     submittedTheses.value = resp.items || [];
+    thesisPage.value = 1;
     if (!thesisId.value && submittedTheses.value.length) {
       thesisId.value = String(submittedTheses.value[0].id);
       await loadReviewers();
@@ -48,6 +64,7 @@ async function loadReviewers() {
     }
     const resp = await request(`/api/admin/reviewers?${params.toString()}`);
     reviewers.value = resp.items || [];
+    reviewerPage.value = 1;
     selectedReviewerIds.value = selectedReviewerIds.value.filter((id) =>
       reviewers.value.some((x) => x.id === id && !x.is_conflicted)
     );
@@ -198,7 +215,7 @@ onMounted(loadSubmitted);
         </tr>
       </thead>
       <tbody>
-        <tr v-for="row in submittedTheses" :key="row.id">
+        <tr v-for="row in pagedSubmittedTheses" :key="row.id">
           <td>{{ row.id }}</td>
           <td>{{ row.title }}</td>
           <td>{{ row.student_id }}</td>
@@ -207,7 +224,12 @@ onMounted(loadSubmitted);
         </tr>
       </tbody>
     </table>
-    <div v-else class="empty-box">暂无状态为 SUBMITTED 的论文。</div>
+    <PaginationBar
+      v-model:current="thesisPage"
+      v-model:pageSize="thesisPageSize"
+      :total="submittedTheses.length"
+    />
+    <div v-if="!submittedTheses.length" class="empty-box">暂无状态为 SUBMITTED 的论文。</div>
 
     <div class="form-grid three" style="margin-top: 12px">
       <label>
@@ -262,7 +284,7 @@ onMounted(loadSubmitted);
         </tr>
       </thead>
       <tbody>
-        <tr v-for="reviewer in reviewers" :key="reviewer.id" :class="{ conflict: reviewer.is_conflicted }">
+        <tr v-for="reviewer in pagedReviewers" :key="reviewer.id" :class="{ conflict: reviewer.is_conflicted }">
           <td>
             <input
               type="checkbox"
@@ -294,7 +316,12 @@ onMounted(loadSubmitted);
         </tr>
       </tbody>
     </table>
-    <div v-else-if="thesisId && !loadingReviewers" class="empty-box">
+    <PaginationBar
+      v-model:current="reviewerPage"
+      v-model:pageSize="reviewerPageSize"
+      :total="reviewers.length"
+    />
+    <div v-if="!reviewers.length && thesisId && !loadingReviewers" class="empty-box">
       该论文暂无可显示的教师候选，或当前筛选条件没有结果。
     </div>
 
