@@ -1,22 +1,35 @@
 <script setup>
-import { computed, ref, watch } from "vue";
+import { computed, ref, watch, onMounted } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import { request } from "../../services/api";
 import { authHeaders } from "../../stores/auth";
 import { notifyError, notifySuccess } from "../../stores/notice";
-import { useRoute } from "vue-router";
 
 const taskId = ref("");
 const detail = ref(null);
 const route = useRoute();
+const router = useRouter(); 
 const loading = ref(false);
+const allTasks = ref([]); 
 
 const canOperate = computed(() => Number(taskId.value) > 0);
 
-async function loadTaskDetail(showToast = true) {
-  if (!canOperate.value) {
-    notifyError("请先从任务列表进入，或输入有效任务ID");
-    return;
+async function loadAllTasks() {
+  try {
+    const resp = await request("/api/reviewer/tasks");
+    allTasks.value = resp.items || [];
+    // Auto-select first task if none selected
+    if (allTasks.value.length > 0 && !taskId.value) {
+      router.replace(`/reviewer/tasks?taskId=${allTasks.value[0].task_id}`);
+    }
+  } catch (err) {
+    notifyError("获取任务列表失败");
   }
+}
+
+async function loadTaskDetail(showToast = true) {
+  if (!canOperate.value) return;
+  
   loading.value = true;
   try {
     const resp = await request(`/api/reviewer/tasks/${Number(taskId.value)}`);
@@ -63,10 +76,20 @@ async function downloadBoundFile() {
   }
 }
 
+// Watch for dropdown changes to update URL
+function onTaskChange() {
+  if (taskId.value) {
+    router.push(`/reviewer/tasks?taskId=${taskId.value}`);
+  }
+}
+
 watch(
   () => route.query.taskId,
   async (queryTaskId) => {
     if (!queryTaskId) {
+      if (allTasks.value.length === 0) {
+        await loadAllTasks();
+      }
       return;
     }
     taskId.value = String(queryTaskId);
@@ -74,23 +97,34 @@ watch(
   },
   { immediate: true }
 );
+
+onMounted(async () => {
+  if (allTasks.value.length === 0) {
+    await loadAllTasks();
+  }
+});
 </script>
 
 <template>
   <section class="panel-card">
     <h4>任务详情与下载</h4>
-    <p class="muted">建议从“我的任务列表”点击“打开详情”进入，本页会自动加载任务信息。</p>
+    <p class="muted">您可以直接从下方列表切换任务，或从概览页点击标题进入。</p>
 
     <div class="form-grid three">
       <label>
-        任务ID
-        <input v-model="taskId" type="number" />
+        当前选择的任务
+        <select v-model="taskId" @change="onTaskChange">
+          <option value="" disabled>请选择一个任务</option>
+          <option v-for="t in allTasks" :key="t.task_id" :value="String(t.task_id)">
+            ID: {{ t.task_id }} | {{ t.thesis_title || '无标题' }}
+          </option>
+        </select>
       </label>
     </div>
 
     <div class="row-actions">
       <button class="accent" :disabled="!canOperate || loading" @click="loadTaskDetail">
-        {{ loading ? "加载中..." : "查看详情" }}
+        {{ loading ? "加载中..." : "刷新详情" }}
       </button>
       <button :disabled="!canOperate" @click="downloadBoundFile">下载论文</button>
     </div>
@@ -104,5 +138,9 @@ watch(
       <div><span>最后下载时间</span><b>{{ detail.task.last_downloaded_at || '-' }}</b></div>
       <div><span>退回原因</span><b>{{ detail.task.return_reason || '-' }}</b></div>
     </div>
+    <div v-else-if="!loading" class="empty-state">
+      暂未加载任务详情，请选择任务。
+    </div>
   </section>
 </template>
+

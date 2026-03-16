@@ -1,4 +1,4 @@
-﻿<script setup>
+<script setup>
 import { onMounted, ref } from "vue";
 import { request } from "../../services/api";
 import { notifyError, notifySuccess } from "../../stores/notice";
@@ -45,13 +45,21 @@ onMounted(loadTasks);
         <tr v-for="row in tasks" :key="row.task_id">
           <td>{{ row.task_id }}</td>
           <td>{{ row.thesis_id }}</td>
-          <td>{{ row.thesis_title || '-' }}</td>
+          <td>
+            <a 
+              href="javascript:void(0)" 
+              class="link-text" 
+              @click="router.push(`/reviewer/tasks?taskId=${row.task_id}`)"
+            >
+              {{ row.thesis_title || '-' }}
+            </a>
+          </td>
           <td>{{ row.status }}</td>
           <td>{{ row.due_at || '-' }}</td>
           <td>{{ row.is_overdue ? '是' : '否' }}</td>
           <td>
             <div class="row-actions" style="margin: 0">
-              <button @click="router.push(`/reviewer/tasks?taskId=${row.task_id}`)">打开详情</button>
+              <button class="accent" @click="router.push(`/reviewer/tasks?taskId=${row.task_id}`)">打开详情</button>
               <button class="warn" @click="router.push(`/reviewer/form?taskId=${row.task_id}`)">填写评阅</button>
             </div>
           </td>
