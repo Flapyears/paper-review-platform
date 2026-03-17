@@ -82,6 +82,7 @@ async function logout() {
     <div class="main-body">
       <aside class="main-sidebar">
         <nav class="side-nav">
+          <div class="side-nav-title">导航菜单</div>
           <RouterLink
             v-for="item in sideMenu"
             :key="item.to"
@@ -94,11 +95,11 @@ async function logout() {
       </aside>
 
       <section class="main-content">
-        <NoticeBanner :message="noticeState.message" :type="noticeState.type" />
-        <RouterView />
-        <div v-if="noticeState.message" class="clear-zone">
+        <div v-if="noticeState.message" class="content-toolbar">
+          <NoticeBanner :message="noticeState.message" :type="noticeState.type" />
           <button class="ghost" @click="clearNotice">清除提示</button>
         </div>
+        <RouterView />
       </section>
     </div>
 
