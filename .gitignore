@@ -22,3 +22,9 @@ frontend/dist/
 Thumbs.db
 .vscode/
 .idea/
+
+# skills
+.agent
+
+# ai output
+AGENTS.md
