@@ -1,4 +1,4 @@
-﻿import { createRouter, createWebHistory } from "vue-router";
+import { createRouter, createWebHistory } from "vue-router";
 import AuthLayout from "../layouts/AuthLayout.vue";
 import MainLayout from "../layouts/MainLayout.vue";
 import HomeView from "../views/HomeView.vue";
@@ -16,6 +16,7 @@ import AdminStudentManageView from "../views/admin/AdminStudentManageView.vue";
 import ReviewerOverviewView from "../views/reviewer/ReviewerOverviewView.vue";
 import ReviewerTaskDetailView from "../views/reviewer/ReviewerTaskDetailView.vue";
 import ReviewerFormSubmitView from "../views/reviewer/ReviewerFormSubmitView.vue";
+import ReviewerWorkspaceView from "../views/reviewer/ReviewerWorkspaceView.vue";
 import { authState } from "../stores/auth";
 
 const defaultRolePath = {
@@ -71,6 +72,7 @@ const routes = [
           { path: "overview", component: ReviewerOverviewView },
           { path: "tasks", component: ReviewerTaskDetailView },
           { path: "form", component: ReviewerFormSubmitView },
+          { path: "workspace", component: ReviewerWorkspaceView },
         ],
       },
     ],

@@ -59,8 +59,9 @@ onMounted(loadTasks);
           <td>{{ row.is_overdue ? '是' : '否' }}</td>
           <td>
             <div class="row-actions" style="margin: 0">
-              <button class="accent" @click="router.push(`/reviewer/tasks?taskId=${row.task_id}`)">打开详情</button>
-              <button class="warn" @click="router.push(`/reviewer/form?taskId=${row.task_id}`)">填写评阅</button>
+              <button class="accent" @click="router.push(`/reviewer/workspace?taskId=${row.task_id}`)" title="一边查阅论文全文，一边写评阅">在线审阅(推荐)</button>
+              <button class="ghost" @click="router.push(`/reviewer/tasks?taskId=${row.task_id}`)">查看详情</button>
+              <button class="warn" @click="router.push(`/reviewer/form?taskId=${row.task_id}`)">仅填表</button>
             </div>
           </td>
         </tr>
