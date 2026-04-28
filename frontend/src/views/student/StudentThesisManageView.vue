@@ -133,11 +133,20 @@ onMounted(async () => {
           <h4>论文信息维护</h4>
           <p class="muted">先补全标题和导师，后续操作会更顺畅。</p>
         </div>
-        <div class="row-actions compact">
-          <button v-if="!thesisId" class="accent" :disabled="!advisorId" @click="createThesis">创建论文</button>
-          <button v-else class="accent" :disabled="!advisorId" @click="updateTitle">保存论文信息</button>
-          <button @click="loadMyThesis">刷新论文信息</button>
-          <RouterLink class="mini-link" to="/student/submit">上传与送审</RouterLink>
+        <div class="header-actions">
+          <button v-if="!thesisId" class="primary-btn" :disabled="!advisorId" @click="createThesis">
+            <span class="icon">＋</span> 创建论文
+          </button>
+          <button v-else class="primary-btn" :disabled="!advisorId" @click="updateTitle">
+            <span class="icon">✓</span> 保存论文信息
+          </button>
+          <button class="tool-btn" @click="loadMyThesis" title="刷新论文信息">
+            <span class="icon">↻</span>
+          </button>
+          <RouterLink class="submit-entry" to="/student/submit">
+            <span class="entry-text">上传与送审</span>
+            <span class="entry-arrow">→</span>
+          </RouterLink>
         </div>
       </div>
 
@@ -251,3 +260,270 @@ onMounted(async () => {
     </div>
   </section>
 </template>
+
+<style scoped>
+.overview-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.page-hero {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  padding: 32px;
+}
+
+.page-hero-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.section-kicker {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+
+.page-hero-main h4 {
+  font-size: 24px;
+  margin: 0 0 8px;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.primary-btn {
+  height: 48px;
+  padding: 0 24px;
+  background: var(--accent);
+  color: white;
+  border-radius: 14px;
+  font-weight: 700;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(30, 58, 138, 0.2);
+}
+
+.primary-btn:hover:not(:disabled) {
+  background: #1a357d;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(30, 58, 138, 0.3);
+}
+
+.primary-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.primary-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.tool-btn {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  background: white;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tool-btn:hover {
+  background: #f1f5f9;
+  color: var(--ink);
+  border-color: var(--muted);
+}
+
+.submit-entry {
+  height: 48px;
+  padding: 0 24px;
+  background: white;
+  color: var(--accent);
+  border: 2px solid var(--accent);
+  border-radius: 14px;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: all 0.2s;
+}
+
+.submit-entry:hover {
+  background: var(--accent);
+  color: white;
+  box-shadow: 0 4px 12px rgba(30, 58, 138, 0.15);
+}
+
+.entry-arrow {
+  font-size: 18px;
+  transition: transform 0.2s;
+}
+
+.submit-entry:hover .entry-arrow {
+  transform: translateX(4px);
+}
+
+.icon {
+  font-size: 20px;
+}
+
+.overview-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.metric-card {
+  padding: 20px;
+  border-radius: 18px;
+  background: white;
+  border: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: transform 0.2s;
+}
+
+.metric-card:hover {
+  transform: translateY(-2px);
+}
+
+.metric-card span {
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.metric-card b {
+  font-size: 20px;
+  color: var(--ink);
+}
+
+.metric-card.primary { border-left: 4px solid var(--accent); }
+.metric-card.accent { border-left: 4px solid #10b981; }
+
+.overview-main {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 20px;
+  align-items: start;
+}
+
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.status-chip {
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: #dcfce7;
+  color: #15803d;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.status-chip.empty {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.quick-action-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.action-tile {
+  display: flex;
+  flex-direction: column;
+  padding: 18px;
+  border-radius: 16px;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  text-decoration: none;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.action-tile:hover {
+  background: white;
+  border-color: var(--accent);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  transform: translateX(4px);
+}
+
+.action-tile.primary {
+  background: var(--accent-soft);
+  border-color: transparent;
+}
+
+.action-tile strong {
+  color: var(--ink);
+  font-size: 15px;
+}
+
+.action-tile span {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.state-note {
+  padding: 16px;
+  border-radius: 14px;
+  background: #f0f9ff;
+  border-left: 4px solid #0ea5e9;
+  margin-bottom: 20px;
+}
+
+.state-note.warning {
+  background: #fffbeb;
+  border-left-color: #f59e0b;
+}
+
+.state-note strong {
+  display: block;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.state-note p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+@media (max-width: 1100px) {
+  .overview-main { grid-template-columns: 1fr; }
+  .page-hero-main {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+}
+</style>

@@ -160,12 +160,17 @@ onMounted(fetchMyThesis);
           <h4>我的论文总览</h4>
           <p class="muted">这里能看到论文进展、版本和下一步。</p>
         </div>
-        <div class="row-actions compact">
-          <button class="accent" :disabled="loading" @click="fetchMyThesis">
-            {{ loading ? "刷新中..." : "刷新" }}
+        <div class="header-actions">
+          <button class="tool-btn" :disabled="loading" @click="fetchMyThesis" :title="loading ? '刷新中...' : '刷新状态'">
+            <span class="icon">↻</span>
           </button>
-          <RouterLink class="mini-link strong" to="/student/thesis">论文信息</RouterLink>
-          <RouterLink class="mini-link strong" to="/student/submit">上传与送审</RouterLink>
+          <RouterLink class="secondary-btn" to="/student/thesis">
+            <span class="icon">📄</span> 论文信息
+          </RouterLink>
+          <RouterLink class="primary-btn" to="/student/submit">
+            <span class="entry-text">上传与送审</span>
+            <span class="entry-arrow">→</span>
+          </RouterLink>
         </div>
       </div>
 
@@ -286,3 +291,311 @@ onMounted(fetchMyThesis);
     </div>
   </section>
 </template>
+
+<style scoped>
+.overview-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.page-hero {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  padding: 32px;
+}
+
+.page-hero-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.section-kicker {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+
+.page-hero-main h4 {
+  font-size: 26px;
+  margin: 0 0 8px;
+  letter-spacing: -0.01em;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.primary-btn {
+  height: 48px;
+  padding: 0 24px;
+  background: var(--accent);
+  color: white;
+  border-radius: 14px;
+  font-weight: 700;
+  font-size: 15px;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(30, 58, 138, 0.2);
+}
+
+.primary-btn:hover {
+  background: #1a357d;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(30, 58, 138, 0.3);
+}
+
+.secondary-btn {
+  height: 48px;
+  padding: 0 20px;
+  background: white;
+  color: var(--accent);
+  border: 2px solid var(--accent);
+  border-radius: 14px;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+.secondary-btn:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.tool-btn {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  background: white;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tool-btn:hover {
+  background: #f1f5f9;
+  color: var(--ink);
+  border-color: var(--muted);
+}
+
+.entry-arrow {
+  font-size: 18px;
+  transition: transform 0.2s;
+}
+
+.primary-btn:hover .entry-arrow {
+  transform: translateX(4px);
+}
+
+.icon {
+  font-size: 18px;
+}
+
+.overview-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.metric-card {
+  padding: 24px;
+  border-radius: 20px;
+  background: white;
+  border: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: transform 0.2s;
+}
+
+.metric-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
+}
+
+.metric-card span {
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.metric-card b {
+  font-size: 22px;
+  color: var(--ink);
+}
+
+.metric-card.primary { border-left: 5px solid var(--accent); }
+.metric-card.accent { border-left: 5px solid #10b981; }
+
+.overview-main {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 20px;
+}
+
+.progress-box {
+  margin: 24px 0;
+  padding: 20px;
+  background: #f8fafc;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+}
+
+.progress-meta {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.progress-track {
+  height: 10px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent) 0%, #3b82f6 100%);
+  border-radius: 999px;
+  transition: width 1s ease-out;
+}
+
+.status-chip {
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: #dcfce7;
+  color: #15803d;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.status-chip.empty {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.student-flow-card {
+  margin-top: 32px;
+  padding: 24px;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+}
+
+.student-flow-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.student-flow-head h5 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.student-step-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.student-step-item {
+  position: relative;
+  padding-left: 32px;
+}
+
+.student-step-item::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 4px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  background: white;
+}
+
+.student-step-item.done::before {
+  background: #10b981;
+  border-color: #10b981;
+  content: "✓";
+  color: white;
+  font-size: 12px;
+  display: grid;
+  place-items: center;
+}
+
+.student-step-item strong {
+  display: block;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.student-step-item p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.action-tile {
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  border-radius: 18px;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  text-decoration: none;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.action-tile:hover {
+  background: white;
+  border-color: var(--accent);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  transform: translateX(4px);
+}
+
+.action-tile.primary {
+  background: var(--accent-soft);
+}
+
+.action-tile strong {
+  font-size: 15px;
+  color: var(--ink);
+}
+
+.action-tile span {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+@media (max-width: 1100px) {
+  .overview-main { grid-template-columns: 1fr; }
+  .page-hero-main {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 20px;
+  }
+}
+</style>
