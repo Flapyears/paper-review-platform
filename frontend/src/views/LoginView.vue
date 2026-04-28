@@ -46,9 +46,9 @@ async function quickLogin(username, password) {
   <section class="panel-card narrow login-card">
     <div class="login-head">
       <h3>账号登录</h3>
-      <span class="login-badge">Secure Login</span>
+      <span class="login-badge">欢迎回来</span>
     </div>
-    <p class="muted login-subtitle">请输入账号和密码登录系统。</p>
+    <p class="muted login-subtitle">输入账号和密码即可进入。</p>
     <div class="form-grid single">
       <label>
         用户名
@@ -66,11 +66,9 @@ async function quickLogin(username, password) {
     </div>
 
     <div v-if="showDevQuickLogin" class="dev-quick-login">
-      <p class="muted">快速登录（仅开发环境）</p>
+      <p class="muted">演示入口</p>
       <div class="row-actions">
-        <button class="quick-role" :disabled="loading" @click="quickLogin('student1', 'student123')">学生</button>
-        <button class="quick-role" :disabled="loading" @click="quickLogin('admin1', 'admin123')">管理员</button>
-        <button class="quick-role" :disabled="loading" @click="quickLogin('reviewer1', 'reviewer123')">评阅教师</button>
+        <button class="quick-role" :disabled="loading" @click="quickLogin('admin', 'admin')">管理员</button>
       </div>
     </div>
   </section>

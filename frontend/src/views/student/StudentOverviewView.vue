@@ -140,7 +140,7 @@ async function fetchMyThesis() {
   try {
     const data = await request("/api/thesis/my");
     thesis.value = data.thesis;
-    notifySuccess("已刷新我的论文信息");
+    notifySuccess("论文信息已更新");
   } catch (err) {
     notifyError(err.message || String(err));
   } finally {
@@ -156,9 +156,9 @@ onMounted(fetchMyThesis);
     <div class="panel-card page-hero">
       <div class="page-hero-main">
         <div>
-          <p class="section-kicker">论文工作台</p>
+          <p class="section-kicker">论文进度</p>
           <h4>我的论文总览</h4>
-          <p class="muted">展示当前账号关联论文的核心状态与版本信息。</p>
+          <p class="muted">这里能看到论文进展、版本和下一步。</p>
         </div>
         <div class="row-actions compact">
           <button class="accent" :disabled="loading" @click="fetchMyThesis">
@@ -246,13 +246,13 @@ onMounted(fetchMyThesis);
         <section class="panel-card content-card side-card">
           <div class="section-head">
             <div>
-              <h4>办理提醒</h4>
-              <p class="muted">请根据当前论文状态继续办理后续事项。</p>
+            <h4>办理提醒</h4>
+              <p class="muted">下一步做什么，这里会直接告诉你。</p>
             </div>
           </div>
 
           <div class="state-note" :class="{ warning: !thesis }">
-            <strong>{{ thesis ? "论文信息已同步" : "待完善基础信息" }}</strong>
+            <strong>{{ thesis ? "可以继续下一步" : "先补全论文信息" }}</strong>
             <p>
               {{
                 thesis
@@ -267,7 +267,7 @@ onMounted(fetchMyThesis);
           <div class="section-head">
             <div>
               <h4>常用入口</h4>
-              <p class="muted">可直接进入论文信息维护或上传送审办理。</p>
+              <p class="muted">直接进入常用页面，继续处理即可。</p>
             </div>
           </div>
 

@@ -5,18 +5,18 @@ import { RouterView } from "vue-router";
 <template>
   <div class="auth-layout">
     <section class="auth-hero panel-card">
-      <span class="hero-kicker">Paper Review Platform</span>
+      <span class="hero-kicker">欢迎使用</span>
       <h1>毕业论文评审平台</h1>
-      <p>请使用账号密码登录，系统将根据角色进入对应工作台。</p>
+      <p>登录后即可查看论文进展、待办事项和评阅结果。</p>
       <ul class="hero-list">
-        <li>学生：论文上传与送审</li>
-        <li>管理员：评阅分配与过程控制</li>
-        <li>评阅教师：任务执行与评阅提交</li>
+        <li>学生：填写论文信息，上传终稿</li>
+        <li>管理员：查看进展，安排评阅</li>
+        <li>评阅教师：处理任务，填写意见</li>
       </ul>
       <div class="hero-foot">
-        <span>流程可追溯</span>
-        <span>权限隔离</span>
-        <span>状态联动</span>
+        <span>进度清楚</span>
+        <span>操作顺手</span>
+        <span>结果可查</span>
       </div>
     </section>
 

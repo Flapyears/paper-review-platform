@@ -1,5 +1,7 @@
 # Paper Review Platform (MVP)
 
+当前这套系统默认按“正式可用”方式启动，不再自动灌入学生和教师演示账号。
+
 ## Quick Start
 
 ```bash
@@ -37,20 +39,25 @@ uvicorn app.main:app --reload
 
 FastAPI will serve `frontend/dist` at `http://127.0.0.1:8000/` with SPA fallback routing.
 
-## Login Accounts (Default)
+## Default Account
 
-Seeded automatically on startup:
+默认只会自动创建 1 个管理员账号：
 
-- Student: `student1` / `student123`
-- Admin: `admin1` / `admin123`
-- Reviewer: `reviewer1` / `reviewer123`
-- Reviewer: `reviewer2` / `reviewer123`
-- Reviewer: `reviewer3` / `reviewer123`
+- 管理员：`admin` / `admin`
+
+首次登录后系统会强制要求修改密码，修改完成后才能继续使用。
+
+系统启动时不会自动创建学生和教师账号。需要登录管理员后，通过以下方式补充：
+
+- 教师管理页手动新增
+- 学生管理页手动新增
+- 教师 / 学生 Excel 导入
 
 Login API:
 
 - `POST /api/auth/login`
 - `GET /api/auth/me`
+- `POST /api/auth/change-password`
 - `POST /api/auth/logout`
 
 ## Auth Headers
@@ -63,7 +70,7 @@ For tests/dev fallback, APIs still support headers:
 - `X-Role`: `student` / `reviewer` / `admin`
 - `X-User-Name`: optional display name
 
-Vue frontend includes a header simulator, so you can switch roles directly in browser.
+正常使用时不需要手工传这些头。它们主要用于测试和开发态接口联调。
 
 ## Frontend Pages
 
@@ -75,7 +82,15 @@ After opening the app, use top navigation to enter role workspaces:
 - `/admin/*`: dashboard, thesis list, assignment, task operations
 - `/admin/reviewers`: reviewer account management (create/update/enable-reset)
 - `/admin/students`: student account management (create/update/enable-reset)
+- `/account/password`: current user password change page
 - `/reviewer/*`: task list, task detail/download, review form submission
+
+## Account Management Notes
+
+- 所有角色登录后都可以从左侧菜单进入“修改密码”页面
+- 管理员可以重置教师和学生密码
+- 教师管理和学生管理都支持 Excel 模板下载与 Excel 导入
+- 导入时可以为本次导入账号指定默认初始密码
 
 ## Admin Assignment Guide
 
@@ -149,6 +164,11 @@ Identity switching is moved to `DevToolsDrawer` (mock user/role):
 - shown in development mode automatically
 - or enable with env: `VITE_ENABLE_DEVTOOLS=true`
 - supports one-click dev data generation via `/api/dev/*` endpoints
+
+说明：
+
+- 这是开发辅助能力，不属于正式使用流程
+- 正式启动时默认账号仍只有 `admin / admin`
 
 ## Dev Seed APIs
 

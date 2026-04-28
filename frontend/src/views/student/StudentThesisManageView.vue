@@ -97,7 +97,7 @@ async function createThesis() {
     const data = await requestJson("/api/thesis/my", "POST", payload);
     thesisId.value = String(data?.data?.thesis_id || "");
     await loadMyThesis();
-    notifySuccess(`论文创建成功，ID: ${thesisId.value}`);
+    notifySuccess("论文已创建");
   } catch (err) {
     notifyError(err.message || String(err));
   }
@@ -113,7 +113,7 @@ async function updateTitle() {
       advisor_id: Number(advisorId.value),
     });
     await loadMyThesis();
-    notifySuccess("论文信息已更新");
+    notifySuccess("论文信息已保存");
   } catch (err) {
     notifyError(err.message || String(err));
   }
@@ -131,7 +131,7 @@ onMounted(async () => {
         <div>
           <p class="section-kicker">论文信息</p>
           <h4>论文信息维护</h4>
-          <p class="muted">填写论文标题并选择导师，完成论文基础信息维护。</p>
+          <p class="muted">先补全标题和导师，后续操作会更顺畅。</p>
         </div>
         <div class="row-actions compact">
           <button v-if="!thesisId" class="accent" :disabled="!advisorId" @click="createThesis">创建论文</button>
@@ -159,7 +159,7 @@ onMounted(async () => {
         <div class="section-head">
           <div>
             <h4>基础信息填写</h4>
-            <p class="muted">请确认论文标题和导师信息准确无误。</p>
+            <p class="muted">确认信息无误后再保存。</p>
           </div>
           <span class="status-chip" :class="{ empty: !currentThesis }">
             {{ currentThesis ? "已建立论文" : "待创建论文" }}
@@ -210,10 +210,10 @@ onMounted(async () => {
       <aside class="overview-side">
         <section class="panel-card content-card side-card">
           <div class="section-head">
-            <div>
-              <h4>办理提醒</h4>
-              <p class="muted">基础信息将作为后续上传和送审的论文依据。</p>
-            </div>
+          <div>
+            <h4>办理提醒</h4>
+            <p class="muted">这些信息会显示在后续评审流程里。</p>
+          </div>
           </div>
 
           <div class="state-note" :class="{ warning: !currentThesis }">
@@ -222,7 +222,7 @@ onMounted(async () => {
               {{
                 currentThesis
                   ? "如需修改论文标题或指导教师，请在提交送审前完成更新。"
-                  : "创建论文后，系统会记录论文编号，并用于后续终稿上传和送审提交。"
+                  : "创建后就能继续上传终稿和提交送审。"
               }}
             </p>
           </div>
@@ -230,10 +230,10 @@ onMounted(async () => {
 
         <section class="panel-card content-card side-card">
           <div class="section-head">
-            <div>
-              <h4>常用入口</h4>
-              <p class="muted">按流程继续办理论文相关事项。</p>
-            </div>
+          <div>
+            <h4>常用入口</h4>
+            <p class="muted">下一步常用页面都在这里。</p>
+          </div>
           </div>
 
           <div class="quick-action-list">

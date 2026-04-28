@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from "vue";
 import { request } from "../../services/api";
 import { notifyError, notifySuccess } from "../../stores/notice";
 import PaginationBar from "../../components/common/PaginationBar.vue";
+import { formatThesisStatus } from "../../utils/status";
 
 const summary = ref({ submittedCount: 0, inReviewCount: 0, doneCount: 0 });
 const progressRows = ref([]);
@@ -30,7 +31,7 @@ async function refreshDashboard(showToast = true) {
     progressRows.value = progressResp.items || [];
     page.value = 1;
     if (showToast) {
-      notifySuccess("管理员看板已刷新");
+      notifySuccess("看板已更新");
     }
   } catch (err) {
     notifyError(err.message || String(err));
@@ -47,11 +48,11 @@ onMounted(() => {
 <template>
   <section class="panel-card">
     <h4>评审看板</h4>
-    <p class="muted">查看论文状态分布与评阅完成度。</p>
+    <p class="muted">这里能快速看到论文进展和评阅完成情况。</p>
 
     <div class="row-actions">
       <button class="accent" :disabled="loading" @click="refreshDashboard">
-        {{ loading ? "刷新中..." : "刷新看板" }}
+        {{ loading ? "刷新中..." : "刷新数据" }}
       </button>
     </div>
 
@@ -83,7 +84,7 @@ onMounted(() => {
       <tbody>
         <tr v-for="row in pagedProgressRows" :key="row.thesis_id">
           <td>{{ row.thesis_id }}</td>
-          <td>{{ row.thesis_status }}</td>
+          <td>{{ formatThesisStatus(row.thesis_status) }}</td>
           <td>{{ row.total_active_tasks }}</td>
           <td>{{ row.submitted_tasks }}</td>
           <td>{{ row.completion_percent }}%</td>

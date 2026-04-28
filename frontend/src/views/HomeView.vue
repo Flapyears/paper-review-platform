@@ -4,6 +4,7 @@ import { RouterLink } from "vue-router";
 import { request } from "../services/api";
 import { authState } from "../stores/auth";
 import { notifyError } from "../stores/notice";
+import { formatReviewTaskStatus, formatThesisStatus } from "../utils/status";
 
 const loading = ref(false);
 const todos = ref([]);
@@ -12,7 +13,7 @@ const recentItems = ref([]);
 const roleEntry = computed(() => {
   if (authState.role === "student") {
     return {
-      title: "学生工作区",
+      title: "学生首页",
       to: "/student/overview",
       links: [
         { label: "论文总览", to: "/student/overview" },
@@ -23,7 +24,7 @@ const roleEntry = computed(() => {
   }
   if (authState.role === "admin") {
     return {
-      title: "管理员工作区",
+      title: "管理员首页",
       to: "/admin/overview",
       links: [
         { label: "评审看板", to: "/admin/overview" },
@@ -33,7 +34,7 @@ const roleEntry = computed(() => {
     };
   }
   return {
-    title: "评阅教师工作区",
+    title: "评阅教师首页",
     to: "/reviewer/overview",
     links: [
       { label: "任务列表", to: "/reviewer/overview" },
@@ -47,24 +48,24 @@ async function loadStudentWidget() {
   const resp = await request("/api/thesis/my");
   const thesis = resp.thesis;
   if (!thesis) {
-    todos.value = ["创建论文并填写标题", "上传终稿文件", "提交送审"];
+    todos.value = ["填写论文信息", "上传终稿", "提交送审"];
     recentItems.value = ["当前暂无论文记录"];
     return;
   }
 
   if (thesis.status === "DRAFT") {
-    todos.value = ["上传终稿并提交送审", "确认导师与标题信息", "等待管理员分配评阅"];
+    todos.value = ["上传终稿", "核对论文标题和导师", "提交送审"];
   } else if (thesis.status === "SUBMITTED") {
-    todos.value = ["等待管理员分配评阅", "关注状态变化", "如被退回请根据原因修订"];
+    todos.value = ["等待安排评阅", "留意最新进展", "如被退回按提示修改"];
   } else if (thesis.status === "REVIEWING") {
-    todos.value = ["等待评阅教师提交结果", "关注进度变化", "必要时联系管理员"];
+    todos.value = ["等待评阅结果", "留意最新进展", "如有需要联系管理员"];
   } else {
-    todos.value = ["评阅已完成", "可联系管理员查看后续安排"];
+    todos.value = ["评阅已完成", "留意后续通知"];
   }
 
   recentItems.value = [
     `论文标题：${thesis.title}`,
-    `当前状态：${thesis.status}`,
+    `当前状态：${formatThesisStatus(thesis.status)}`,
     `当前版本号：${thesis.current_version_no ? `V${thesis.current_version_no}` : "-"}`,
     `退回原因：${thesis.return_reason || "无"}`,
   ];
@@ -73,9 +74,9 @@ async function loadStudentWidget() {
 async function loadAdminWidget() {
   const submitted = await request("/api/admin/thesis?status=SUBMITTED");
   todos.value = [
-    `待分配论文：${(submitted.items || []).length} 篇`,
-    "进入分配评阅页面完成任务生成",
-    "跟踪已分配任务完成度",
+    `待安排论文：${(submitted.items || []).length} 篇`,
+    "尽快安排评阅老师",
+    "留意正在进行中的任务",
   ];
 
   recentItems.value = (submitted.items || []).slice(0, 5).map((row) => {
@@ -92,12 +93,12 @@ async function loadReviewerWidget() {
   const pending = tasks.filter((t) => t.status !== "SUBMITTED" && t.status !== "CANCELLED");
   todos.value = [
     `待处理任务：${pending.length} 个`,
-    "打开任务详情并下载绑定论文",
-    "填写评阅表并提交",
+    "先查看论文和任务要求",
+    "完成后提交评阅意见",
   ];
 
   recentItems.value = tasks.slice(0, 5).map((task) => {
-    return `任务#${task.task_id} ${task.thesis_title || "未命名论文"}（${task.status}）`;
+    return `任务#${task.task_id} ${task.thesis_title || "未命名论文"}（${formatReviewTaskStatus(task.status)}）`;
   });
   if (recentItems.value.length === 0) {
     recentItems.value = ["当前没有分配到任务"];
@@ -133,15 +134,15 @@ onMounted(loadWorkbench);
 
 <template>
   <section class="panel-card">
-    <h3>工作台</h3>
-    <p class="muted">以下内容根据当前登录角色自动展示。</p>
+    <h3>待办概览</h3>
+    <p class="muted">先看待办，再进入对应页面处理。</p>
 
     <div class="row-actions">
       <RouterLink class="entry-link" :to="roleEntry.to">进入{{ roleEntry.title }}</RouterLink>
       <button :disabled="loading" @click="loadWorkbench">
-        {{ loading ? "刷新中..." : "刷新工作台" }}
+        {{ loading ? "刷新中..." : "刷新内容" }}
       </button>
-      <RouterLink class="entry-link" to="/help">查看流程帮助</RouterLink>
+      <RouterLink class="entry-link" to="/help">查看操作说明</RouterLink>
     </div>
 
     <div class="dashboard-grid">

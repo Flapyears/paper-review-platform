@@ -33,6 +33,11 @@ def run_compat_migrations(engine) -> None:  # noqa: ANN001
         return
 
     user_columns = {col["name"] for col in inspector.get_columns("users")}
+    auth_columns = (
+        {col["name"] for col in inspector.get_columns("auth_credentials")}
+        if "auth_credentials" in inspector.get_table_names()
+        else set()
+    )
     statements: list[str] = []
     if "department" not in user_columns:
         statements.append("ALTER TABLE users ADD COLUMN department VARCHAR(64)")
@@ -44,6 +49,10 @@ def run_compat_migrations(engine) -> None:  # noqa: ANN001
     statements.append(
         "CREATE INDEX IF NOT EXISTS ix_users_student_no ON users (student_no)"
     )
+    if "must_change_password" not in auth_columns:
+        statements.append(
+            "ALTER TABLE auth_credentials ADD COLUMN must_change_password BOOLEAN NOT NULL DEFAULT 0"
+        )
     if "thesis_versions" in inspector.get_table_names():
         version_columns = {col["name"] for col in inspector.get_columns("thesis_versions")}
         if "version_no" not in version_columns:

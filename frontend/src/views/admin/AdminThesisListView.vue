@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from "vue";
 import { request, requestJson } from "../../services/api";
 import { notifyError, notifySuccess } from "../../stores/notice";
 import PaginationBar from "../../components/common/PaginationBar.vue";
+import { formatThesisStatus } from "../../utils/status";
 
 const statusFilter = ref("ALL");
 const theses = ref([]);
@@ -50,15 +51,15 @@ onMounted(loadList);
 <template>
   <section class="panel-card">
     <h4>论文列表</h4>
-    <p class="muted">筛选论文状态并执行退回补交操作。</p>
+    <p class="muted">查看论文进展，也可以在这里退回补交。</p>
 
     <div class="row-actions">
       <select v-model="statusFilter">
         <option value="ALL">全部状态</option>
-        <option value="SUBMITTED">SUBMITTED</option>
-        <option value="REVIEWING">REVIEWING</option>
-        <option value="REVIEW_DONE">REVIEW_DONE</option>
-        <option value="DRAFT">DRAFT</option>
+        <option value="SUBMITTED">已提交待分配</option>
+        <option value="REVIEWING">评阅中</option>
+        <option value="REVIEW_DONE">评阅完成</option>
+        <option value="DRAFT">草稿中</option>
       </select>
       <button class="accent" @click="loadList">加载列表</button>
     </div>
@@ -80,7 +81,7 @@ onMounted(loadList);
           <td>{{ row.id }}</td>
           <td>{{ row.title }}</td>
           <td>{{ row.student_id }}</td>
-          <td>{{ row.status }}</td>
+          <td>{{ formatThesisStatus(row.status) }}</td>
           <td>{{ row.current_version_no ? `V${row.current_version_no}` : '-' }}</td>
           <td>{{ row.assigned_count }}</td>
           <td><button @click="pick(row)">选择</button></td>

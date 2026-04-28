@@ -84,8 +84,9 @@ async function submitFinal() {
     const data = await request(`/api/thesis/${Number(thesisId.value)}/submit-final`, {
       method: "POST",
     });
+    const nextStatus = data?.data?.thesis_status || "SUBMITTED";
     notifySuccess(
-      `送审提交成功，当前状态: ${data?.data?.thesis_status || "SUBMITTED"}，版本号: V${data?.data?.version_no || "-"}`
+      `送审已提交，当前状态：${statusLabel(nextStatus)}，版本 V${data?.data?.version_no || "-"}`
     );
     await loadCurrent();
   } catch (err) {
@@ -114,12 +115,12 @@ onMounted(loadCurrent);
         <div>
           <p class="section-kicker">上传与送审</p>
           <h4>终稿上传与送审提交</h4>
-          <p class="muted">上传终稿后提交送审，系统将记录当前送审版本。</p>
+          <p class="muted">上传终稿后即可提交送审。</p>
         </div>
         <div class="row-actions compact">
           <button class="accent" @click="uploadFinal">上传终稿</button>
           <button class="warn" @click="submitFinal">提交送审</button>
-          <button @click="loadCurrent">刷新当前状态</button>
+          <button @click="loadCurrent">刷新</button>
         </div>
       </div>
 
@@ -141,7 +142,7 @@ onMounted(loadCurrent);
         <div class="section-head">
           <div>
             <h4>终稿办理</h4>
-            <p class="muted">请上传最终版论文文件，并在确认后提交送审。</p>
+            <p class="muted">确认文件无误后再提交。</p>
           </div>
           <span class="status-chip" :class="{ empty: !current }">
             {{ current ? statusLabel(current.status) : "暂无论文" }}
@@ -177,10 +178,10 @@ onMounted(loadCurrent);
       <aside class="overview-side">
         <section class="panel-card content-card side-card">
           <div class="section-head">
-            <div>
-              <h4>提交提醒</h4>
-              <p class="muted">请确认上传文件为最终送审版本。</p>
-            </div>
+          <div>
+            <h4>提交提醒</h4>
+            <p class="muted">确认无误后再提交，避免重复修改。</p>
+          </div>
           </div>
 
           <div class="state-note" :class="{ warning: !current }">
@@ -188,7 +189,7 @@ onMounted(loadCurrent);
             <p>
               {{
                 current
-                  ? "提交送审后，系统将按当前版本进入评审流程。如论文被退回，请根据退回原因修改后重新上传。"
+                  ? "提交后会按当前版本进入评审。如被退回，按提示修改后重新上传即可。"
                   : "请先填写论文标题并选择指导教师，建立论文信息后再上传终稿。"
               }}
             </p>
@@ -197,10 +198,10 @@ onMounted(loadCurrent);
 
         <section class="panel-card content-card side-card">
           <div class="section-head">
-            <div>
-              <h4>常用入口</h4>
-              <p class="muted">快速查看论文状态或维护论文基础信息。</p>
-            </div>
+          <div>
+            <h4>常用入口</h4>
+            <p class="muted">需要补充信息时，可以直接从这里进入。</p>
+          </div>
           </div>
 
           <div class="quick-action-list">

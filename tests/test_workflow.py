@@ -1,12 +1,30 @@
+from io import BytesIO
 from pathlib import Path
 
 from fastapi.testclient import TestClient
+from openpyxl import Workbook, load_workbook
 
-from app.main import create_app
+from app.main import create_app as create_base_app
 
 
 def _headers(user_id: int, role: str) -> dict[str, str]:
     return {"X-User-Id": str(user_id), "X-Role": role, "X-User-Name": f"{role}-{user_id}"}
+
+
+def create_app(*args, **kwargs):
+    kwargs.setdefault("seed_demo_accounts", True)
+    return create_base_app(*args, **kwargs)
+
+
+def _build_excel(headers: list[str], rows: list[list[str]]) -> bytes:
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.append(headers)
+    for row in rows:
+        sheet.append(row)
+    output = BytesIO()
+    workbook.save(output)
+    return output.getvalue()
 
 
 def test_end_to_end_workflow(tmp_path: Path):
@@ -569,3 +587,112 @@ def test_admin_auto_assign_skips_when_department_quota_cannot_be_satisfied(tmp_p
     data = auto.json()["data"]
     assert data["assigned_thesis_count"] == 0
     assert any(x["thesis_id"] == thesis_id and x["reason"] == "insufficient_reviewers" for x in data["skipped"])
+
+
+def test_admin_can_download_reviewer_import_template_and_import_excel(tmp_path: Path):
+    db_path = tmp_path / "test16.db"
+    storage_dir = tmp_path / "storage16"
+    app = create_app(database_url=f"sqlite:///{db_path}", storage_dir=str(storage_dir))
+    client = TestClient(app)
+
+    template = client.get("/api/admin/reviewers/import-template", headers=_headers(2, "admin"))
+    assert template.status_code == 200
+    assert "spreadsheetml" in template.headers["content-type"]
+
+    workbook = load_workbook(BytesIO(template.content))
+    sheet = workbook.active
+    assert [cell.value for cell in sheet[1]] == ["姓名", "用户名", "邮箱", "科室"]
+
+    excel_bytes = _build_excel(
+        ["姓名", "用户名", "邮箱", "科室"],
+        [
+            ["张老师", "reviewer_batch_1", "zhang@example.com", "计算机系"],
+            ["李老师", "reviewer_batch_2", "", "软件系"],
+        ],
+    )
+
+    custom_password = "reviewer2026!"
+
+    imported = client.post(
+        "/api/admin/reviewers/import-excel",
+        headers=_headers(2, "admin"),
+        data={"default_password": custom_password},
+        files={"file": ("reviewers.xlsx", excel_bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
+    )
+    assert imported.status_code == 200
+    data = imported.json()["data"]
+    assert data["created_count"] == 2
+    assert data["failed_count"] == 0
+    assert data["default_password"] == custom_password
+
+    login = client.post("/api/auth/login", json={"username": "reviewer_batch_1", "password": custom_password})
+    assert login.status_code == 200
+
+
+def test_admin_can_download_student_import_template_and_import_excel(tmp_path: Path):
+    db_path = tmp_path / "test17.db"
+    storage_dir = tmp_path / "storage17"
+    app = create_app(database_url=f"sqlite:///{db_path}", storage_dir=str(storage_dir))
+    client = TestClient(app)
+
+    template = client.get("/api/admin/students/import-template", headers=_headers(2, "admin"))
+    assert template.status_code == 200
+    assert "spreadsheetml" in template.headers["content-type"]
+
+    workbook = load_workbook(BytesIO(template.content))
+    sheet = workbook.active
+    assert [cell.value for cell in sheet[1]] == ["姓名", "用户名", "学号", "邮箱"]
+
+    excel_bytes = _build_excel(
+        ["姓名", "用户名", "学号", "邮箱"],
+        [
+            ["王同学", "student_batch_1", "20269901", "wang@example.com"],
+            ["赵同学", "student_batch_2", "20269902", ""],
+        ],
+    )
+
+    custom_password = "student2026!"
+
+    imported = client.post(
+        "/api/admin/students/import-excel",
+        headers=_headers(2, "admin"),
+        data={"default_password": custom_password},
+        files={"file": ("students.xlsx", excel_bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
+    )
+    assert imported.status_code == 200
+    data = imported.json()["data"]
+    assert data["created_count"] == 2
+    assert data["failed_count"] == 0
+    assert data["default_password"] == custom_password
+
+    login = client.post("/api/auth/login", json={"username": "student_batch_1", "password": custom_password})
+    assert login.status_code == 200
+
+
+def test_excel_import_reports_row_errors_without_aborting_all_rows(tmp_path: Path):
+    db_path = tmp_path / "test18.db"
+    storage_dir = tmp_path / "storage18"
+    app = create_app(database_url=f"sqlite:///{db_path}", storage_dir=str(storage_dir))
+    client = TestClient(app)
+
+    excel_bytes = _build_excel(
+        ["姓名", "用户名", "学号", "邮箱"],
+        [
+            ["第一位", "student_dup", "20268801", ""],
+            ["重复学号", "student_dup_2", "20268801", ""],
+            ["缺用户名", "", "20268803", ""],
+        ],
+    )
+
+    imported = client.post(
+        "/api/admin/students/import-excel",
+        headers=_headers(2, "admin"),
+        files={"file": ("students-errors.xlsx", excel_bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
+    )
+    assert imported.status_code == 200
+    data = imported.json()["data"]
+    assert data["created_count"] == 1
+    assert data["failed_count"] == 2
+    assert len(data["failures"]) == 2
+    assert any(item["row"] == 3 for item in data["failures"])
+    assert any(item["row"] == 4 for item in data["failures"])

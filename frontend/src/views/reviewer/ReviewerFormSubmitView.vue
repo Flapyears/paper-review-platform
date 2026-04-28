@@ -3,6 +3,7 @@ import { computed, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { request, requestJson } from "../../services/api";
 import { notifyError, notifySuccess } from "../../stores/notice";
+import { formatReviewTaskStatus } from "../../utils/status";
 
 const route = useRoute();
 const router = useRouter();
@@ -97,7 +98,7 @@ async function saveDraft() {
       internal_comments: internalComments.value || null,
     };
     await requestJson(`/api/reviewer/tasks/${currentTaskIdNum.value}/form`, "PUT", payload);
-    notifySuccess("评阅草稿已保存");
+    notifySuccess("草稿已保存");
     await loadTaskDetailById(currentTaskIdNum.value, false);
     await loadQuickTasks(false);
   } catch (err) {
@@ -142,7 +143,7 @@ watch(
   <section class="review-form-layout">
     <div class="panel-card">
       <h4>评阅表填写与提交</h4>
-      <p class="muted">从“我的任务列表”点击“填写评阅”进入后会自动加载任务；无任务时不可提交。</p>
+      <p class="muted">先选任务，再填写分数和意见。</p>
 
       <div class="form-grid three">
         <label>
@@ -182,9 +183,9 @@ watch(
         <button class="warn" :disabled="!canOperate" @click="submitForm">提交评阅</button>
       </div>
 
-      <div v-if="!taskId" class="empty-box">请从“我的任务列表”点击“填写评阅”进入本页。</div>
+      <div v-if="!taskId" class="empty-box">请先到“我的任务列表”选择一篇论文。</div>
       <div v-if="detail?.task" class="detail-grid">
-        <div><span>任务状态</span><b>{{ detail.task.status }}</b></div>
+        <div><span>任务状态</span><b>{{ formatReviewTaskStatus(detail.task.status) }}</b></div>
         <div><span>论文</span><b>{{ detail.task.thesis_title || "-" }} (#{{ detail.task.thesis_id }})</b></div>
         <div><span>当前版本</span><b>{{ detail.task.version_no ? `V${detail.task.version_no}` : "-" }}</b></div>
         <div><span>退回原因</span><b>{{ detail.task.return_reason || "-" }}</b></div>
@@ -192,8 +193,8 @@ watch(
     </div>
 
     <aside class="panel-card quick-task-panel">
-      <h4>我的任务快捷列表</h4>
-      <p class="muted">点击任务可快速切换。</p>
+      <h4>快速切换任务</h4>
+      <p class="muted">点一下就能切换任务。</p>
       <div class="row-actions" style="margin-top: 0">
         <button class="ghost" :disabled="loadingQuickTasks" @click="loadQuickTasks(true)">
           {{ loadingQuickTasks ? "刷新中..." : "刷新任务" }}
@@ -207,7 +208,7 @@ watch(
           :class="{ active: currentTaskIdNum === item.task_id }"
           @click="switchTask(item.task_id)"
         >
-          <span>#{{ item.task_id }} · {{ item.status }}</span>
+          <span>#{{ item.task_id }} · {{ formatReviewTaskStatus(item.status) }}</span>
           <b>{{ item.thesis_title || "未命名论文" }}</b>
         </button>
       </div>

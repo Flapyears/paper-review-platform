@@ -1,10 +1,11 @@
 from collections.abc import Callable
 
 from fastapi import Depends, Header, HTTPException, Request, status
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.database import get_db_session
-from app.models import User, UserRole
+from app.models import AuthCredential, User, UserRole
 from app.services.auth import get_user_by_token
 
 
@@ -25,6 +26,8 @@ def get_current_user(
         user = get_user_by_token(db, token)
         if user is None:
             raise HTTPException(status_code=401, detail="Invalid or expired token.")
+        credential = db.scalar(select(AuthCredential).where(AuthCredential.user_id == user.id))
+        setattr(user, "_auth_credential", credential)
         return user
 
     if x_user_id is None or not x_role:
@@ -45,6 +48,8 @@ def get_current_user(
         db.refresh(user)
     elif user.role != role:
         raise HTTPException(status_code=403, detail="Role mismatch for this user.")
+    credential = db.scalar(select(AuthCredential).where(AuthCredential.user_id == user.id))
+    setattr(user, "_auth_credential", credential)
     return user
 
 

@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from "vue";
 import { request, requestJson } from "../../services/api";
 import { notifyError, notifySuccess } from "../../stores/notice";
 import PaginationBar from "../../components/common/PaginationBar.vue";
+import { formatThesisStatus } from "../../utils/status";
 
 const submittedTheses = ref([]);
 const thesisId = ref("");
@@ -41,7 +42,7 @@ async function loadSubmitted() {
       thesisId.value = String(submittedTheses.value[0].id);
       await loadReviewers();
     }
-    notifySuccess("待分配论文已加载");
+    notifySuccess("待安排论文已更新");
   } catch (err) {
     notifyError(err.message || String(err));
   }
@@ -134,7 +135,7 @@ async function assignTasks() {
       max_reviewers_per_department: Number(maxPerDepartment.value) || 1,
     };
     const resp = await requestJson("/api/admin/review-tasks/assign", "POST", payload);
-    notifySuccess(`分配成功，任务ID: ${(resp.data?.task_ids || []).join(", ")}`);
+    notifySuccess(`分配完成，已创建 ${(resp.data?.task_ids || []).length} 个任务`);
     const listResp = await request("/api/admin/thesis");
     const matched = (listResp.items || []).find((x) => x.id === Number(thesisId.value));
     assignResult.value = {
@@ -156,11 +157,11 @@ async function autoAssignUnassigned() {
       reviewers_per_thesis: Number(autoReviewersPerThesis.value) || 2,
       max_task_limit: Number(reviewerLimit.value) || 8,
       max_reviewers_per_department: Number(maxPerDepartment.value) || 1,
-      reason: assignReason.value || "auto_assign_unassigned",
+      reason: assignReason.value || "系统自动分配",
     });
     const data = resp.data || {};
     notifySuccess(
-      `自动分配完成：论文 ${data.assigned_thesis_count || 0} 篇，任务 ${data.created_task_count || 0} 条`
+      `自动安排完成：已处理 ${data.assigned_thesis_count || 0} 篇论文，生成 ${data.created_task_count || 0} 个任务`
     );
     assignResult.value = {
       taskIds: data.created_task_ids || [],
@@ -192,15 +193,15 @@ onMounted(loadSubmitted);
 <template>
   <section class="panel-card">
     <h4>评阅分配</h4>
-    <p class="muted">先选择论文，再从候选教师列表中选择评阅人。</p>
+    <p class="muted">先选论文，再选合适的评阅老师。</p>
 
     <div class="row-actions">
-      <button class="accent" @click="loadSubmitted">刷新待分配论文</button>
+      <button class="accent" @click="loadSubmitted">刷新论文</button>
       <button :disabled="!thesisId || loadingReviewers" @click="loadReviewers">
         {{ loadingReviewers ? "加载中..." : "刷新候选教师" }}
       </button>
       <button class="warn" :disabled="autoAssigning" @click="autoAssignUnassigned">
-        {{ autoAssigning ? "自动分配中..." : "自动分配未分配论文" }}
+        {{ autoAssigning ? "自动安排中..." : "自动安排剩余论文" }}
       </button>
     </div>
 
@@ -229,7 +230,7 @@ onMounted(loadSubmitted);
       v-model:pageSize="thesisPageSize"
       :total="submittedTheses.length"
     />
-    <div v-if="!submittedTheses.length" class="empty-box">暂无状态为 SUBMITTED 的论文。</div>
+    <div v-if="!submittedTheses.length" class="empty-box">当前没有待安排的论文。</div>
 
     <div class="form-grid three" style="margin-top: 12px">
       <label>
@@ -338,7 +339,7 @@ onMounted(loadSubmitted);
 
     <label class="single-line-label">
       分配原因
-      <input v-model="assignReason" placeholder="可选，记录分配依据" />
+      <input v-model="assignReason" placeholder="可选，方便记录安排原因" />
     </label>
 
     <div class="row-actions">
@@ -356,7 +357,7 @@ onMounted(loadSubmitted);
     <div v-if="assignResult" class="detail-grid">
       <div><span>新建任务ID</span><b>{{ assignResult.taskIds.join(", ") || "-" }}</b></div>
       <div><span>论文ID</span><b>{{ assignResult.thesis?.id || thesisId }}</b></div>
-      <div><span>论文状态</span><b>{{ assignResult.thesis?.status || "-" }}</b></div>
+      <div><span>论文状态</span><b>{{ formatThesisStatus(assignResult.thesis?.status) }}</b></div>
       <div><span>已分配任务数</span><b>{{ assignResult.thesis?.assigned_count ?? "-" }}</b></div>
       <div><span>分配给</span><b>{{ assignResult.reviewerNames.join("，") || "-" }}</b></div>
       <div><span>自动分配论文数</span><b>{{ assignResult.auto?.assignedThesisCount ?? "-" }}</b></div>

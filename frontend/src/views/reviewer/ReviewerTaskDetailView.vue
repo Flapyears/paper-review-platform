@@ -4,6 +4,7 @@ import { useRoute, useRouter } from "vue-router";
 import { request } from "../../services/api";
 import { authHeaders } from "../../stores/auth";
 import { notifyError, notifySuccess } from "../../stores/notice";
+import { formatReviewTaskStatus } from "../../utils/status";
 
 const taskId = ref("");
 const detail = ref(null);
@@ -108,7 +109,7 @@ onMounted(async () => {
 <template>
   <section class="panel-card">
     <h4>任务详情与下载</h4>
-    <p class="muted">您可以直接从下方列表切换任务，或从概览页点击标题进入。</p>
+    <p class="muted">可以直接切换任务，也可以先看详情再下载论文。</p>
 
     <div class="form-grid three">
       <label>
@@ -130,7 +131,7 @@ onMounted(async () => {
     </div>
 
     <div v-if="detail?.task" class="detail-grid">
-      <div><span>任务状态</span><b>{{ detail.task.status }}</b></div>
+      <div><span>任务状态</span><b>{{ formatReviewTaskStatus(detail.task.status) }}</b></div>
       <div><span>论文ID</span><b>{{ detail.task.thesis_id }}</b></div>
       <div><span>论文标题</span><b>{{ detail.task.thesis_title || '-' }}</b></div>
       <div><span>版本号</span><b>{{ detail.task.version_no ? `V${detail.task.version_no}` : "-" }}</b></div>

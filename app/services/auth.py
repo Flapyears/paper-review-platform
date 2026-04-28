@@ -46,6 +46,57 @@ def get_user_by_token(db: Session, token: str) -> User | None:
 
 
 def seed_default_accounts(db: Session) -> None:
+    """
+    仅兜底创建管理员账号，避免每次启动自动回灌学生/教师演示账号。
+    默认管理员首次登录后必须修改密码，后续修改不会在启动时被覆盖。
+    """
+
+    defaults = [
+        {
+            "role": UserRole.ADMIN,
+            "name": "管理员",
+            "username": "admin",
+            "password": "admin",
+            "department": None,
+            "must_change_password": True,
+        },
+    ]
+    changed = False
+    for item in defaults:
+        user = db.scalar(select(User).where(User.role == item["role"]).order_by(User.id.asc()))
+        if user is None:
+            user = User(
+                role=item["role"],
+                name=item["name"],
+                department=item["department"],
+            )
+            db.add(user)
+            db.flush()
+            changed = True
+        elif user.name != item["name"] or user.department != item["department"]:
+            user.name = item["name"]
+            user.department = item["department"]
+            changed = True
+        credential = db.scalar(select(AuthCredential).where(AuthCredential.user_id == user.id))
+        if credential is None:
+            credential = AuthCredential(
+                user_id=user.id,
+                username=item["username"],
+                password_hash=hash_password(item["password"]),
+                is_active=True,
+                must_change_password=item["must_change_password"],
+            )
+            db.add(credential)
+            changed = True
+    if changed:
+        db.commit()
+
+
+def seed_demo_accounts(db: Session) -> None:
+    """
+    仅供测试或显式演示环境使用，保留旧的固定账号编号，避免影响现有用例。
+    """
+
     defaults = [
         {
             "user_id": 1,
@@ -101,9 +152,12 @@ def seed_default_accounts(db: Session) -> None:
             db.add(user)
             db.flush()
             changed = True
-        elif user.department != item["department"]:
+        elif user.role != item["role"] or user.name != item["name"] or user.department != item["department"]:
+            user.role = item["role"]
+            user.name = item["name"]
             user.department = item["department"]
             changed = True
+
         credential = db.scalar(select(AuthCredential).where(AuthCredential.user_id == user.id))
         if credential is None:
             credential = AuthCredential(
@@ -111,6 +165,7 @@ def seed_default_accounts(db: Session) -> None:
                 username=item["username"],
                 password_hash=hash_password(item["password"]),
                 is_active=True,
+                must_change_password=False,
             )
             db.add(credential)
             changed = True

@@ -48,7 +48,8 @@ body {
     );
 }
 
-.auth-hero {
+/* Keep the auth hero on its dark theme even when it also uses the shared panel-card shell. */
+.panel-card.auth-hero {
   background: linear-gradient(165deg, #1e3a8a 0%, #273f7b 78%);
   color: #eef2fb;
   border: 1px solid #2f4a90;
@@ -909,6 +910,168 @@ button:disabled {
   border-top: 1px dashed #d8dce7;
 }
 
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.title-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.action-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.table-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.table-actions button {
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.soft-tag {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: 12px;
+  color: #35518b;
+  background: #edf3ff;
+}
+
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.help-tip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.help-tip-button {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+  background: #e8eefc;
+  color: #284882;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.help-tip-bubble {
+  position: absolute;
+  left: 28px;
+  top: 50%;
+  z-index: 30;
+  width: 240px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #1f2a44;
+  color: #f7f9ff;
+  font-size: 12px;
+  line-height: 1.6;
+  box-shadow: 0 14px 28px rgba(31, 42, 68, 0.22);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-50%) translateX(-4px);
+  transition: 0.18s ease;
+}
+
+.help-tip:hover .help-tip-bubble,
+.help-tip:focus-within .help-tip-bubble {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(18, 28, 48, 0.46);
+}
+
+.modal-panel {
+  max-width: min(100%, 760px);
+  max-height: calc(100vh - 36px);
+  overflow: auto;
+  border-radius: 18px;
+  background: #ffffff;
+  border: 1px solid #d7dfef;
+  box-shadow: 0 24px 48px rgba(18, 28, 48, 0.22);
+}
+
+.modal-head,
+.modal-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px;
+}
+
+.modal-head {
+  position: sticky;
+  top: 0;
+  background: #ffffff;
+  border-bottom: 1px solid #e5ebf7;
+}
+
+.modal-head h4 {
+  margin: 0;
+}
+
+.modal-close {
+  min-width: 72px;
+}
+
+.modal-body {
+  padding: 18px;
+}
+
+.modal-foot {
+  border-top: 1px solid #e5ebf7;
+  justify-content: flex-end;
+}
+
+.modal-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.import-result {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.import-failures {
+  margin-top: 0;
+}
+
 @media (max-width: 980px) {
   .auth-layout {
     grid-template-columns: 1fr;
@@ -928,9 +1091,11 @@ button:disabled {
     overflow-x: auto;
   }
 
+  .page-header,
   .page-hero-main,
   .section-head {
     flex-direction: column;
+    align-items: flex-start;
   }
 
   .overview-main {
@@ -963,6 +1128,17 @@ button:disabled {
 
   .main-topbar {
     padding: 10px 14px;
+  }
+
+  .help-tip-bubble {
+    left: 0;
+    top: calc(100% + 8px);
+    transform: translateY(0);
+  }
+
+  .help-tip:hover .help-tip-bubble,
+  .help-tip:focus-within .help-tip-bubble {
+    transform: translateY(0);
   }
 
   .overview-metrics,
