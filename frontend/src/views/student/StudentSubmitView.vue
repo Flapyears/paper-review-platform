@@ -117,10 +117,16 @@ onMounted(loadCurrent);
           <h4>终稿上传与送审提交</h4>
           <p class="muted">上传终稿后即可提交送审。</p>
         </div>
-        <div class="row-actions compact">
-          <button class="accent" @click="uploadFinal">上传终稿</button>
-          <button class="warn" @click="submitFinal">提交送审</button>
-          <button @click="loadCurrent">刷新</button>
+        <div class="header-actions">
+          <button class="tool-btn" @click="loadCurrent" title="刷新状态">
+            <span class="icon">↻</span>
+          </button>
+          <button class="primary-btn secondary" @click="uploadFinal" :disabled="!fileRef">
+            <span class="icon">↑</span> 上传终稿
+          </button>
+          <button class="primary-btn danger" @click="submitFinal" :disabled="!current || current.status !== 'DRAFT'">
+            <span class="icon">🚀</span> 提交送审
+          </button>
         </div>
       </div>
 
@@ -149,15 +155,44 @@ onMounted(loadCurrent);
           </span>
         </div>
 
-        <div class="form-grid three">
-          <label>
-            论文ID
-            <input v-model="thesisId" type="number" />
-          </label>
-          <label class="wide">
-            终稿文件（PDF / DOCX）
-            <input type="file" accept=".pdf,.docx" @change="onFileChange" />
-          </label>
+        <div class="upload-section">
+          <div class="thesis-meta-bar">
+            <div class="meta-item">
+              <span class="meta-label">论文 ID</span>
+              <code class="meta-value">#{{ thesisId || '-' }}</code>
+            </div>
+            <div class="meta-item" v-if="current">
+              <span class="meta-label">当前版本</span>
+              <span class="meta-value">V{{ current.current_version_no || '0' }}</span>
+            </div>
+          </div>
+
+          <div class="file-uploader-wrap">
+            <span class="field-label">终稿文件上传 (支持 PDF / DOCX)</span>
+            <div class="file-uploader" :class="{ has_file: fileRef }" @click="$refs.fileInput.click()">
+              <input type="file" ref="fileInput" accept=".pdf,.docx" hidden @change="onFileChange" />
+              <div v-if="!fileRef" class="upload-placeholder">
+                <span class="upload-icon">📄</span>
+                <div class="upload-text">
+                  <strong>点击此处或拖拽文件上传</strong>
+                  <span>建议文件大小不超过 50MB</span>
+                </div>
+              </div>
+              <div v-else class="file-preview">
+                <span class="file-icon">✅</span>
+                <div class="file-info">
+                  <span class="file-name">{{ fileRef.name }}</span>
+                  <span class="file-size">{{ (fileRef.size / 1024).toFixed(1) }} KB</span>
+                </div>
+                <button class="remove-file" @click.stop="fileRef = null">更换文件</button>
+              </div>
+            </div>
+          </div>
+          
+          <div class="upload-action-bar" v-if="fileRef">
+             <button class="accent-btn" @click="uploadFinal">立即同步终稿文件</button>
+             <p class="muted-tip">同步后将自动创建新版本，您可以在下方列表中查看详情。</p>
+          </div>
         </div>
 
         <div v-if="current" class="detail-grid overview-detail-grid">
@@ -219,3 +254,388 @@ onMounted(loadCurrent);
     </div>
   </section>
 </template>
+
+<style scoped>
+.overview-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.page-hero {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  padding: 32px;
+}
+
+.page-hero-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.section-kicker {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+
+.page-hero-main h4 {
+  font-size: 24px;
+  margin: 0 0 8px;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.primary-btn {
+  height: 48px;
+  padding: 0 24px;
+  background: var(--accent);
+  color: white;
+  border-radius: 14px;
+  font-weight: 700;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(30, 58, 138, 0.2);
+}
+
+.primary-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+.primary-btn.secondary {
+  background: white;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  box-shadow: none;
+}
+
+.primary-btn.secondary:hover:not(:disabled) {
+  background: var(--accent-soft);
+}
+
+.primary-btn.danger {
+  background: #f43f5e;
+  box-shadow: 0 4px 12px rgba(244, 63, 94, 0.2);
+}
+
+.primary-btn.danger:hover:not(:disabled) {
+  background: #e11d48;
+  box-shadow: 0 8px 20px rgba(244, 63, 94, 0.3);
+}
+
+.tool-btn {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  background: white;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tool-btn:hover {
+  background: #f1f5f9;
+  color: var(--ink);
+}
+
+.icon {
+  font-size: 20px;
+}
+
+.overview-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.metric-card {
+  padding: 20px;
+  border-radius: 18px;
+  background: white;
+  border: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.metric-card span {
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.metric-card b {
+  font-size: 20px;
+  color: var(--ink);
+}
+
+.metric-card.primary { border-left: 4px solid var(--accent); }
+.metric-card.accent { border-left: 4px solid #10b981; }
+
+.overview-main {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 20px;
+}
+
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.status-chip {
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: #dcfce7;
+  color: #15803d;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.status-chip.empty {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.upload-section {
+  padding: 10px 0;
+}
+
+.thesis-meta-bar {
+  display: flex;
+  gap: 32px;
+  margin-bottom: 24px;
+  padding: 12px 20px;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.meta-label {
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.meta-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+  background: white;
+  padding: 2px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+}
+
+code.meta-value {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  color: var(--accent);
+}
+
+.file-uploader-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.field-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.file-uploader {
+  min-height: 180px;
+  border: 2px dashed #cbd5e1;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  background: #fbfcfd;
+}
+
+.file-uploader:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.file-uploader.has_file {
+  border-style: solid;
+  border-color: #10b981;
+  background: #f0fdf4;
+}
+
+.upload-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.upload-icon {
+  font-size: 42px;
+  filter: grayscale(1) opacity(0.5);
+}
+
+.upload-text strong {
+  display: block;
+  font-size: 15px;
+  color: var(--ink);
+  margin-bottom: 4px;
+}
+
+.upload-text span {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.file-preview {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  width: 100%;
+}
+
+.file-icon {
+  font-size: 32px;
+}
+
+.file-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.file-name {
+  font-weight: 700;
+  color: var(--ink);
+  word-break: break-all;
+}
+
+.file-size {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.remove-file {
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: white;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.remove-file:hover {
+  background: #fee2e2;
+  color: #dc2626;
+  border-color: #fecaca;
+}
+
+.upload-action-bar {
+  margin-top: 24px;
+  padding: 16px;
+  background: #f0fdf4;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.accent-btn {
+  height: 40px;
+  padding: 0 20px;
+  background: #10b981;
+  color: white;
+  border-radius: 10px;
+  border: none;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.muted-tip {
+  margin: 0;
+  font-size: 13px;
+  color: #15803d;
+}
+
+.state-note {
+  padding: 16px;
+  border-radius: 14px;
+  background: #f0f9ff;
+  border-left: 4px solid #0ea5e9;
+  margin-bottom: 20px;
+}
+
+.state-note.warning {
+  background: #fffbeb;
+  border-left-color: #f59e0b;
+}
+
+.action-tile {
+  display: flex;
+  flex-direction: column;
+  padding: 18px;
+  border-radius: 16px;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  text-decoration: none;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.action-tile:hover {
+  background: white;
+  border-color: var(--accent);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  transform: translateX(4px);
+}
+
+.action-tile.primary {
+  background: var(--accent-soft);
+}
+
+@media (max-width: 1100px) {
+  .overview-main { grid-template-columns: 1fr; }
+  .form-grid { grid-template-columns: 1fr; }
+  .page-hero-main {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+}
+</style>
