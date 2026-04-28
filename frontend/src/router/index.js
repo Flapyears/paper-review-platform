@@ -4,6 +4,7 @@ import MainLayout from "../layouts/MainLayout.vue";
 import HomeView from "../views/HomeView.vue";
 import HelpView from "../views/HelpView.vue";
 import LoginView from "../views/LoginView.vue";
+import AccountPasswordView from "../views/AccountPasswordView.vue";
 import StudentOverviewView from "../views/student/StudentOverviewView.vue";
 import StudentThesisManageView from "../views/student/StudentThesisManageView.vue";
 import StudentSubmitView from "../views/student/StudentSubmitView.vue";
@@ -40,6 +41,7 @@ const routes = [
     meta: { requiresAuth: true },
     children: [
       { path: "", component: HomeView },
+      { path: "account/password", component: AccountPasswordView },
       { path: "help", component: HelpView },
       {
         path: "student",

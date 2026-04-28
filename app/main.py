@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from app.config import load_settings
 from app.database import create_engine_and_session, create_tables, run_compat_migrations
 from app.routers import admin, auth, dev, files, reviewer, student
-from app.services.auth import seed_default_accounts
+from app.services.auth import seed_default_accounts, seed_demo_accounts as seed_demo_accounts_data
 
 
 def create_app(
@@ -17,6 +17,7 @@ def create_app(
     storage_dir: str | None = None,
     max_upload_size: int | None = None,
     max_reviewers_per_department: int | None = None,
+    seed_demo_accounts: bool = False,
 ) -> FastAPI:
     app = FastAPI(title="Paper Review Platform", version="0.1.0")
 
@@ -34,7 +35,10 @@ def create_app(
     create_tables(engine)
     run_compat_migrations(engine)
     with Session(bind=engine) as db:
-        seed_default_accounts(db)
+        if seed_demo_accounts:
+            seed_demo_accounts_data(db)
+        else:
+            seed_default_accounts(db)
 
     app.include_router(auth.router)
     app.include_router(student.router)

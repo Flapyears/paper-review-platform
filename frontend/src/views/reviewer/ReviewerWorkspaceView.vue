@@ -4,6 +4,7 @@ import { useRoute, useRouter } from "vue-router";
 import { request, requestJson } from "../../services/api";
 import { authHeaders } from "../../stores/auth";
 import { notifyError, notifySuccess } from "../../stores/notice";
+import { formatReviewTaskStatus } from "../../utils/status";
 
 const route = useRoute();
 const router = useRouter();
@@ -239,7 +240,7 @@ onBeforeUnmount(() => {
                 <select :value="taskId" @change="e => switchTask(e.target.value)">
                     <option value="" disabled>-- 快速切换任务 --</option>
                     <option v-for="t in quickTasks" :key="t.task_id" :value="String(t.task_id)">
-                        ID: {{ t.task_id }} | {{ t.thesis_title || '无标题' }} ({{ t.status }})
+                        ID: {{ t.task_id }} | {{ t.thesis_title || '无标题' }} ({{ formatReviewTaskStatus(t.status) }})
                     </option>
                 </select>
             </div>
@@ -250,7 +251,7 @@ onBeforeUnmount(() => {
                 <div class="task-info-card">
                    <div class="ti-row"><span>论文:</span> <strong>{{ detail.task.thesis_title || "-" }}</strong></div>
                    <div class="ti-row"><span>版本:</span> <strong>{{ detail.task.version_no ? `V${detail.task.version_no}` : "-" }}</strong></div>
-                   <div class="ti-row"><span>状态:</span> <strong class="badge">{{ detail.task.status }}</strong></div>
+                   <div class="ti-row"><span>状态:</span> <strong class="badge">{{ formatReviewTaskStatus(detail.task.status) }}</strong></div>
                    <div v-if="detail.task.return_reason" class="ti-row ti-warn">
                        <span>退回原因:</span> <strong>{{ detail.task.return_reason }}</strong>
                    </div>

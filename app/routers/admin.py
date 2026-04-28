@@ -1,7 +1,9 @@
 from datetime import datetime
 import json
+from io import BytesIO
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile
+from fastapi.responses import StreamingResponse
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -33,6 +35,12 @@ from app.schemas import (
     ReturnRequest,
 )
 from app.services.audit import write_audit_log
+from app.services.account_import import (
+    import_reviewers_from_excel,
+    import_students_from_excel,
+    reviewer_template_bytes,
+    student_template_bytes,
+)
 from app.services.auth import hash_password
 from app.services.state_machine import refresh_thesis_status_from_tasks
 
@@ -56,6 +64,14 @@ def _count_departments(department_names: list[str]) -> dict[str, int]:
     for name in department_names:
         counts[name] = counts.get(name, 0) + 1
     return counts
+
+
+def _xlsx_response(*, content: bytes, filename: str) -> StreamingResponse:
+    return StreamingResponse(
+        BytesIO(content),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 def _validate_department_quota(
@@ -328,6 +344,32 @@ def list_reviewers_manage(
     return {"items": rows}
 
 
+@router.get("/reviewers/import-template")
+def download_reviewer_import_template(
+    user: User = Depends(require_roles(UserRole.ADMIN)),
+):
+    return _xlsx_response(content=reviewer_template_bytes(), filename="reviewer-import-template.xlsx")
+
+
+@router.post("/reviewers/import-excel", response_model=MessageResponse)
+async def import_reviewers_excel(
+    file: UploadFile = File(...),
+    default_password: str | None = Form(default=None),
+    db: Session = Depends(get_db),
+    user: User = Depends(require_roles(UserRole.ADMIN)),
+):
+    if not file.filename or not file.filename.lower().endswith(".xlsx"):
+        raise HTTPException(status_code=400, detail="Only .xlsx files are supported.")
+    content = await file.read()
+    if not content:
+        raise HTTPException(status_code=400, detail="Uploaded file is empty.")
+    try:
+        data = import_reviewers_from_excel(db, user.id, content, default_password=default_password)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return MessageResponse(message="reviewer_imported", data=data)
+
+
 @router.post("/reviewers", response_model=MessageResponse)
 def create_reviewer(
     payload: ReviewerCreateRequest,
@@ -468,6 +510,32 @@ def list_students_manage(
             }
         )
     return {"items": rows}
+
+
+@router.get("/students/import-template")
+def download_student_import_template(
+    user: User = Depends(require_roles(UserRole.ADMIN)),
+):
+    return _xlsx_response(content=student_template_bytes(), filename="student-import-template.xlsx")
+
+
+@router.post("/students/import-excel", response_model=MessageResponse)
+async def import_students_excel(
+    file: UploadFile = File(...),
+    default_password: str | None = Form(default=None),
+    db: Session = Depends(get_db),
+    user: User = Depends(require_roles(UserRole.ADMIN)),
+):
+    if not file.filename or not file.filename.lower().endswith(".xlsx"):
+        raise HTTPException(status_code=400, detail="Only .xlsx files are supported.")
+    content = await file.read()
+    if not content:
+        raise HTTPException(status_code=400, detail="Uploaded file is empty.")
+    try:
+        data = import_students_from_excel(db, user.id, content, default_password=default_password)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return MessageResponse(message="student_imported", data=data)
 
 
 @router.post("/students", response_model=MessageResponse)

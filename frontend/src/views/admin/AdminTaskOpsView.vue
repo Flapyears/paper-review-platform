@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from "vue";
 import { request, requestJson } from "../../services/api";
 import { notifyError, notifySuccess } from "../../stores/notice";
 import PaginationBar from "../../components/common/PaginationBar.vue";
+import { formatReviewTaskStatus } from "../../utils/status";
 
 const loading = ref(false);
 const tasks = ref([]);
@@ -153,11 +154,11 @@ onMounted(loadTasks);
         状态筛选
         <select v-model="statusFilter">
           <option value="ALL">全部</option>
-          <option value="ASSIGNED">ASSIGNED</option>
-          <option value="DRAFTING">DRAFTING</option>
-          <option value="SUBMITTED">SUBMITTED</option>
-          <option value="RETURNED">RETURNED</option>
-          <option value="CANCELLED">CANCELLED</option>
+          <option value="ASSIGNED">待处理</option>
+          <option value="DRAFTING">填写中</option>
+          <option value="SUBMITTED">已提交</option>
+          <option value="RETURNED">退回修改</option>
+          <option value="CANCELLED">已取消</option>
         </select>
       </label>
       <label>
@@ -192,7 +193,7 @@ onMounted(loadTasks);
             {{ row.reviewer_name || "-" }} (#{{ row.reviewer_id }})
             <div class="muted-inline">{{ row.reviewer_department }}</div>
           </td>
-          <td>{{ row.status }}</td>
+          <td>{{ formatReviewTaskStatus(row.status) }}</td>
           <td>{{ fmtDate(row.updated_at) }}</td>
           <td><button @click="selectTask(row)">选择</button></td>
         </tr>
@@ -203,7 +204,7 @@ onMounted(loadTasks);
 
     <div v-if="selectedTask" class="detail-grid">
       <div><span>当前任务</span><b>#{{ selectedTask.task_id }}</b></div>
-      <div><span>当前状态</span><b>{{ selectedTask.status }}</b></div>
+      <div><span>当前状态</span><b>{{ formatReviewTaskStatus(selectedTask.status) }}</b></div>
       <div><span>论文</span><b>{{ selectedTask.thesis_title }} (#{{ selectedTask.thesis_id }})</b></div>
       <div><span>当前教师</span><b>{{ selectedTask.reviewer_name }} (#{{ selectedTask.reviewer_id }})</b></div>
       <div><span>分配说明</span><b>{{ selectedTask.assigned_reason || "-" }}</b></div>

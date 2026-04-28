@@ -1,14 +1,17 @@
 ﻿<script setup>
-import { computed } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { RouterLink, RouterView, useRoute, useRouter } from "vue-router";
-import { authState, clearSession } from "../stores/auth";
+import { authState, clearSession, syncSessionUser } from "../stores/auth";
 import { request } from "../services/api";
-import { clearNotice, noticeState, notifySuccess } from "../stores/notice";
+import { clearNotice, noticeState, notifyError, notifySuccess } from "../stores/notice";
+import BaseModal from "../components/common/BaseModal.vue";
 import NoticeBanner from "../components/common/NoticeBanner.vue";
+import PasswordChangeForm from "../components/common/PasswordChangeForm.vue";
 import DevToolsDrawer from "../components/devtools/DevToolsDrawer.vue";
 
 const route = useRoute();
 const router = useRouter();
+const syncingProfile = ref(false);
 
 const showDevTools =
   import.meta.env.DEV || String(import.meta.env.VITE_ENABLE_DEVTOOLS || "") === "true";
@@ -27,6 +30,7 @@ const sideMenu = computed(() => {
       { to: "/student/overview", label: "论文总览" },
       { to: "/student/thesis", label: "论文信息" },
       { to: "/student/submit", label: "上传与送审" },
+      { to: "/account/password", label: "修改密码" },
       { to: "/help", label: "帮助" },
     ];
   }
@@ -39,6 +43,7 @@ const sideMenu = computed(() => {
       { to: "/admin/tasks", label: "任务操作" },
       { to: "/admin/reviewers", label: "教师管理" },
       { to: "/admin/students", label: "学生管理" },
+      { to: "/account/password", label: "修改密码" },
       { to: "/help", label: "帮助" },
     ];
   }
@@ -47,6 +52,7 @@ const sideMenu = computed(() => {
     { to: "/reviewer/overview", label: "任务列表" },
     { to: "/reviewer/tasks", label: "任务详情" },
     { to: "/reviewer/form", label: "评阅提交" },
+    { to: "/account/password", label: "修改密码" },
     { to: "/help", label: "帮助" },
   ];
 });
@@ -66,6 +72,31 @@ async function logout() {
     router.push("/login");
   }
 }
+
+async function syncProfile() {
+  if (!authState.token || syncingProfile.value) return;
+  syncingProfile.value = true;
+  try {
+    const resp = await request("/api/auth/me");
+    if (resp?.data?.user) {
+      syncSessionUser(resp.data.user);
+    }
+  } catch (err) {
+    clearSession();
+    notifyError(err.message || "登录状态已失效，请重新登录");
+    router.push("/login");
+  } finally {
+    syncingProfile.value = false;
+  }
+}
+
+function handlePasswordChanged() {
+  if (route.path !== "/account/password") {
+    router.push("/");
+  }
+}
+
+onMounted(syncProfile);
 </script>
 
 <template>
@@ -102,6 +133,16 @@ async function logout() {
         <RouterView />
       </section>
     </div>
+
+    <BaseModal
+      v-model="authState.mustChangePassword"
+      title="修改密码"
+      width="520px"
+      :closable="false"
+      :closeOnBackdrop="false"
+    >
+      <PasswordChangeForm force-mode @success="handlePasswordChanged" />
+    </BaseModal>
 
     <DevToolsDrawer v-if="showDevTools" />
   </div>
