@@ -124,7 +124,29 @@ body {
 
 .auth-form-wrap {
   display: flex;
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
+}
+
+.auth-notice-wrap {
+  margin-bottom: 20px;
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.auth-notice-wrap .notice {
+  margin: 0;
+  width: 100%;
+}
+
+.close-notice {
+  align-self: flex-end;
+  font-size: 12px;
+  padding: 4px 8px;
 }
 
 /* Main layout */

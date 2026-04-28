@@ -1,5 +1,11 @@
-﻿<script setup>
+<script setup>
 import { RouterView } from "vue-router";
+import { noticeState, clearNotice } from "../stores/notice";
+import NoticeBanner from "../components/common/NoticeBanner.vue";
+import DevToolsDrawer from "../components/devtools/DevToolsDrawer.vue";
+
+const showDevTools =
+  import.meta.env.DEV || String(import.meta.env.VITE_ENABLE_DEVTOOLS || "") === "true";
 </script>
 
 <template>
@@ -21,7 +27,13 @@ import { RouterView } from "vue-router";
     </section>
 
     <section class="auth-form-wrap">
+      <div v-if="noticeState.message" class="auth-notice-wrap">
+        <NoticeBanner :message="noticeState.message" :type="noticeState.type" />
+        <button class="ghost close-notice" @click="clearNotice">关闭提示</button>
+      </div>
       <RouterView />
     </section>
+
+    <DevToolsDrawer v-if="showDevTools" />
   </div>
 </template>

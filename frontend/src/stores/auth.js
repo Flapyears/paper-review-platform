@@ -1,4 +1,4 @@
-﻿import { reactive } from "vue";
+import { reactive } from "vue";
 
 const STORAGE_KEY = "prp_auth_session";
 
@@ -89,7 +89,7 @@ export function authHeaders() {
     return {
       "X-User-Id": String(authState.userId),
       "X-Role": String(authState.role),
-      "X-User-Name": String(authState.userName || "dev-user"),
+      "X-User-Name": encodeURIComponent(String(authState.userName || "dev-user")),
     };
   }
   return {};

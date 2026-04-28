@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from urllib.parse import unquote
 
 from fastapi import Depends, Header, HTTPException, Request, status
 from sqlalchemy import select
@@ -42,7 +43,8 @@ def get_current_user(
 
     user = db.get(User, x_user_id)
     if user is None:
-        user = User(id=x_user_id, role=role, name=x_user_name or f"user-{x_user_id}")
+        decoded_name = unquote(x_user_name) if x_user_name else f"user-{x_user_id}"
+        user = User(id=x_user_id, role=role, name=decoded_name)
         db.add(user)
         db.commit()
         db.refresh(user)
