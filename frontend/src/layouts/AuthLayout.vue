@@ -11,18 +11,21 @@ const showDevTools =
 <template>
   <div class="auth-layout">
     <section class="auth-hero panel-card">
-      <span class="hero-kicker">欢迎使用</span>
+      <div class="hero-seal">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+      </div>
+      <span class="hero-kicker">ACADEMIC REVIEW SYSTEM</span>
       <h1>毕业论文评审平台</h1>
-      <p>登录后即可查看论文进展、待办事项和评阅结果。</p>
+      <p>为您提供专业、透明、高效的论文评阅全流程管理服务。</p>
       <ul class="hero-list">
-        <li>学生：填写论文信息，上传终稿</li>
-        <li>管理员：查看进展，安排评阅</li>
-        <li>评阅教师：处理任务，填写意见</li>
+        <li>实时追踪论文提交与审核状态</li>
+        <li>智能分配评阅任务与进度提醒</li>
+        <li>在线填写评阅意见与结果反馈</li>
       </ul>
       <div class="hero-foot">
-        <span>进度清楚</span>
-        <span>操作顺手</span>
-        <span>结果可查</span>
+        <span>全流程数字化</span>
+        <span>学术诚信保障</span>
+        <span>高效协同办公</span>
       </div>
     </section>
 
