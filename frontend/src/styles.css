@@ -576,12 +576,10 @@ button:active {
 
 button.accent {
   background: var(--accent);
-  box-shadow: 0 4px 14px 0 var(--accent-glow);
 }
 
 button.accent:hover {
   background: #1a357d;
-  box-shadow: 0 6px 20px rgba(30, 58, 138, 0.23);
 }
 
 .login-submit {
@@ -590,7 +588,11 @@ button.accent:hover {
 }
 
 button.warn {
-  background: var(--accent-2);
+  background: var(--danger);
+}
+
+button.warn:hover {
+  background: #dc2626;
 }
 
 button.ghost {
@@ -605,6 +607,50 @@ button.ghost:hover {
 button:disabled {
   opacity: 0.65;
   cursor: not-allowed;
+}
+
+.table-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.table-actions button {
+  height: 28px;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 6px;
+  box-shadow: none;
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+.table-actions button:hover {
+  transform: none;
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
+.table-actions button.accent {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: #dbeafe;
+}
+
+.table-actions button.accent:hover {
+  background: #dbeafe;
+}
+
+.table-actions button.warn {
+  background: #fff1f2;
+  color: #be123c;
+  border-color: #fecdd3;
+}
+
+.table-actions button.warn:hover {
+  background: #ffe4e6;
 }
 
 .data-table {
@@ -635,6 +681,48 @@ button:disabled {
 
 .data-table tr.active td {
   background: #edf2ff;
+}
+
+.table-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.table-actions button {
+  height: 30px;
+  padding: 0 10px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.table-actions button:hover {
+  transform: none;
+  filter: brightness(0.95);
+}
+
+.table-actions button.ghost {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+.table-actions button.ghost:hover {
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
+.table-actions button.warn {
+  background: #fff1f2;
+  color: #be123c;
+  border: 1px solid #fecdd3;
+}
+
+.table-actions button.warn:hover {
+  background: #ffe4e6;
+  color: #9f1239;
 }
 
 .muted-inline {
@@ -1171,6 +1259,7 @@ button:disabled {
 .modal-foot {
   border-top: 1px solid #e5ebf7;
   justify-content: flex-end;
+  gap: 12px;
 }
 
 .modal-stack {
