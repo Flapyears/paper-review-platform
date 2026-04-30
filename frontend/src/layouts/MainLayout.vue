@@ -103,7 +103,7 @@ onMounted(syncProfile);
   <div class="main-layout">
     <header class="main-topbar">
       <div class="brand">
-        <img src="../assets/logo.png" alt="Logo" class="mini-logo" />
+        <img src="../assets/logo.svg" alt="Logo" class="mini-logo" />
         毕业论文评审平台
       </div>
       <div class="top-actions">

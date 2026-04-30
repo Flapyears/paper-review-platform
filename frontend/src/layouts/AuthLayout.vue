@@ -12,7 +12,7 @@ const showDevTools =
   <div class="auth-layout">
     <section class="auth-hero panel-card">
       <div class="hero-seal">
-        <img src="../assets/logo.png" alt="Logo" class="logo-img" />
+        <img src="../assets/logo.svg" alt="Logo" class="logo-img" />
       </div>
       <span class="hero-kicker">ACADEMIC REVIEW SYSTEM</span>
       <h1>毕业论文评审平台</h1>

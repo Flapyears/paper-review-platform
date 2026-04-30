@@ -148,8 +148,14 @@ body::before {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  /* 增加光晕效果，提升 Logo 在深色背景下的质感 */
-  filter: drop-shadow(0 0 15px rgba(59, 130, 246, 0.4));
+  /* 为线条 Logo 增加柔和的蓝色光晕，提升神圣感 */
+  filter: drop-shadow(0 0 12px rgba(147, 197, 253, 0.6));
+  transition: all 0.3s ease;
+}
+
+.logo-img:hover {
+  transform: scale(1.05) rotate(-2deg);
+  filter: drop-shadow(0 0 20px rgba(147, 197, 253, 0.8));
 }
 
 .hero-kicker {
