@@ -1,4 +1,4 @@
-﻿<script setup>
+<script setup>
 import { computed, onMounted, ref } from "vue";
 import { RouterLink, RouterView, useRoute, useRouter } from "vue-router";
 import { authState, clearSession, syncSessionUser } from "../stores/auth";
@@ -102,7 +102,10 @@ onMounted(syncProfile);
 <template>
   <div class="main-layout">
     <header class="main-topbar">
-      <div class="brand">毕业论文评审平台</div>
+      <div class="brand">
+        <img src="../assets/logo.png" alt="Logo" class="mini-logo" />
+        毕业论文评审平台
+      </div>
       <div class="top-actions">
         <span class="role-badge">{{ roleLabel }}</span>
         <span class="user-badge">#{{ authState.userId }} / {{ authState.userName }}</span>
