@@ -17,6 +17,9 @@ function statusToUserMessage(status) {
 }
 
 function buildUserMessage(status, detail) {
+  if (status === 422 && typeof detail === "string") {
+    return detail;
+  }
   if (status === 400 && typeof detail === "string") {
     if (detail.includes("incomplete")) return "评阅表单未填写完整，请补全后再提交。";
     if (detail.includes("Invalid")) return "输入数据格式有误，请检查后再试。";

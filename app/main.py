@@ -1,8 +1,8 @@
 from pathlib import Path
 
-from fastapi import FastAPI
-from fastapi import HTTPException
-from fastapi.responses import FileResponse
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 
@@ -47,6 +47,47 @@ def create_app(
     app.include_router(files.router)
     if settings.enable_dev_endpoints:
         app.include_router(dev.router)
+
+    @app.exception_handler(RequestValidationError)
+    async def validation_exception_handler(request: Request, exc: RequestValidationError):
+        error_msgs = []
+        # 中文映射表
+        field_map = {
+            "username": "用户名",
+            "password": "密码",
+            "name": "姓名",
+            "title": "标题",
+            "advisor_id": "指导教师",
+            "student_no": "学号",
+            "email": "电子邮箱",
+            "department": "所属部门",
+            "reason": "原因/意见",
+            "score": "评分",
+        }
+        
+        for error in exc.errors():
+            loc = error["loc"][-1]
+            field_name = field_map.get(loc, loc)
+            msg = error["msg"]
+            
+            # 翻译常见错误类型
+            if error["type"] == "string_too_short":
+                min_len = error["ctx"].get("min_length")
+                msg = f"长度不能少于 {min_len} 个字符"
+            elif error["type"] == "string_too_long":
+                max_len = error["ctx"].get("max_length")
+                msg = f"长度不能超过 {max_len} 个字符"
+            elif error["type"] == "value_error.missing":
+                msg = "不能为空"
+            elif error["type"] == "type_error.integer":
+                msg = "必须为整数"
+            
+            error_msgs.append(f"【{field_name}】{msg}")
+            
+        return JSONResponse(
+            status_code=422,
+            content={"detail": "，".join(error_msgs)},
+        )
 
     frontend_dist = Path("frontend/dist")
     if (frontend_dist / "assets").exists():

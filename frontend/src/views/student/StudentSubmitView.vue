@@ -121,7 +121,7 @@ onMounted(loadCurrent);
           <button class="tool-btn" @click="loadCurrent" title="刷新状态">
             <span class="icon">↻</span>
           </button>
-          <button class="primary-btn secondary" @click="uploadFinal" :disabled="!fileRef">
+          <button class="primary-btn secondary" @click="uploadFinal" :disabled="!fileRef || !current || current.status !== 'DRAFT'">
             <span class="icon">↑</span> 上传终稿
           </button>
           <button class="primary-btn danger" @click="submitFinal" :disabled="!current || current.status !== 'DRAFT'">
@@ -169,13 +169,15 @@ onMounted(loadCurrent);
 
           <div class="file-uploader-wrap">
             <span class="field-label">终稿文件上传 (支持 PDF / DOCX)</span>
-            <div class="file-uploader" :class="{ has_file: fileRef }" @click="$refs.fileInput.click()">
-              <input type="file" ref="fileInput" accept=".pdf,.docx" hidden @change="onFileChange" />
+            <div class="file-uploader" :class="{ has_file: fileRef, disabled: current?.status !== 'DRAFT' }" @click="current?.status === 'DRAFT' && $refs.fileInput.click()">
+              <input type="file" ref="fileInput" accept=".pdf,.docx" hidden @change="onFileChange" :disabled="current?.status !== 'DRAFT'" />
               <div v-if="!fileRef" class="upload-placeholder">
                 <span class="upload-icon">📄</span>
                 <div class="upload-text">
-                  <strong>点击此处或拖拽文件上传</strong>
-                  <span>建议文件大小不超过 50MB</span>
+                  <strong v-if="current?.status === 'DRAFT'">点击此处或拖拽文件上传</strong>
+                  <strong v-else>当前状态不可上传</strong>
+                  <span v-if="current?.status === 'DRAFT'">建议文件大小不超过 50MB</span>
+                  <span v-else>论文已提交或在评阅中，如需修改请联系管理员退回</span>
                 </div>
               </div>
               <div v-else class="file-preview">
@@ -189,7 +191,7 @@ onMounted(loadCurrent);
             </div>
           </div>
           
-          <div class="upload-action-bar" v-if="fileRef">
+          <div class="upload-action-bar" v-if="fileRef && current?.status === 'DRAFT'">
              <button class="accent-btn" @click="uploadFinal">立即同步终稿文件</button>
              <p class="muted-tip">同步后将自动创建新版本，您可以在下方列表中查看详情。</p>
           </div>
@@ -482,9 +484,19 @@ code.meta-value {
   background: #fbfcfd;
 }
 
-.file-uploader:hover {
+.file-uploader:hover:not(.disabled) {
   border-color: var(--accent);
   background: var(--accent-soft);
+}
+
+.file-uploader.disabled {
+  cursor: not-allowed;
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+.file-uploader.disabled .upload-icon {
+  filter: grayscale(1) opacity(0.3);
 }
 
 .file-uploader.has_file {
