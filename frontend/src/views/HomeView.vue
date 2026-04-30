@@ -1,4 +1,4 @@
-﻿<script setup>
+<script setup>
 import { computed, onMounted, ref, watch } from "vue";
 import { RouterLink } from "vue-router";
 import { request } from "../services/api";
@@ -133,41 +133,164 @@ onMounted(loadWorkbench);
 </script>
 
 <template>
-  <section class="panel-card">
-    <h3>待办概览</h3>
-    <p class="muted">先看待办，再进入对应页面处理。</p>
-
-    <div class="row-actions">
-      <RouterLink class="entry-link" :to="roleEntry.to">进入{{ roleEntry.title }}</RouterLink>
-      <button :disabled="loading" @click="loadWorkbench">
-        {{ loading ? "刷新中..." : "刷新内容" }}
-      </button>
-      <RouterLink class="entry-link" to="/help">查看操作说明</RouterLink>
-    </div>
-
-    <div class="dashboard-grid">
-      <article class="dash-card">
-        <h4>我的待办</h4>
-        <ul>
-          <li v-for="(item, idx) in todos" :key="idx">{{ item }}</li>
-        </ul>
-      </article>
-
-      <article class="dash-card">
-        <h4>快捷入口</h4>
-        <div class="quick-links">
-          <RouterLink v-for="link in roleEntry.links" :key="link.to" class="mini-link" :to="link.to">
-            {{ link.label }}
-          </RouterLink>
+  <div class="home-container">
+    <section class="panel-card">
+      <header class="home-header">
+        <div class="header-main">
+          <h3>待办概览</h3>
+          <p class="muted">欢迎回来，以下是您当前需要关注的事项。</p>
         </div>
-      </article>
+        <div class="header-actions">
+          <button class="ghost refresh-btn" :disabled="loading" @click="loadWorkbench">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+            </svg>
+            {{ loading ? "刷新中..." : "刷新数据" }}
+          </button>
+        </div>
+      </header>
 
-      <article class="dash-card">
-        <h4>最近事项</h4>
-        <ul>
-          <li v-for="(item, idx) in recentItems" :key="idx">{{ item }}</li>
-        </ul>
-      </article>
-    </div>
-  </section>
+      <div class="action-banner">
+        <RouterLink class="entry-link major-btn" :to="roleEntry.to">
+          <span>进入{{ roleEntry.title }}</span>
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M5 12h14M12 5l7 7-7 7" />
+          </svg>
+        </RouterLink>
+        <RouterLink class="mini-link" to="/help">操作指南</RouterLink>
+      </div>
+
+      <div class="dashboard-grid">
+        <article class="dash-card">
+          <div class="card-icon todo-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+            </svg>
+          </div>
+          <h4>我的待办</h4>
+          <ul>
+            <li v-for="(item, idx) in todos" :key="idx">{{ item }}</li>
+          </ul>
+        </article>
+
+        <article class="dash-card">
+          <div class="card-icon link-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+            </svg>
+          </div>
+          <h4>快捷入口</h4>
+          <div class="quick-links">
+            <RouterLink v-for="link in roleEntry.links" :key="link.to" class="mini-link" :to="link.to">
+              {{ link.label }}
+            </RouterLink>
+          </div>
+        </article>
+
+        <article class="dash-card">
+          <div class="card-icon event-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            </svg>
+          </div>
+          <h4>最近事项</h4>
+          <ul>
+            <li v-for="(item, idx) in recentItems" :key="idx">{{ item }}</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+  </div>
 </template>
+
+<style scoped>
+.home-container {
+  animation: fade-in 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.home-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+
+.header-main h3 {
+  font-size: 24px;
+  font-weight: 800;
+  margin-bottom: 4px;
+  color: var(--ink);
+}
+
+.action-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px;
+  background: var(--bg-subtle);
+  border-radius: var(--radius-md);
+  margin-bottom: 12px;
+}
+
+.major-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  font-size: 15px;
+}
+
+.icon {
+  width: 18px;
+  height: 18px;
+}
+
+.card-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.card-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.todo-icon { background: var(--success-soft); color: var(--success); }
+.link-icon { background: var(--primary-soft); color: var(--primary); }
+.event-icon { background: var(--accent-soft); color: var(--accent); }
+
+.refresh-btn {
+  padding: 8px 16px;
+  font-size: 14px;
+  gap: 6px;
+}
+
+.refresh-btn .icon {
+  width: 14px;
+  height: 14px;
+}
+
+@media (max-width: 768px) {
+  .home-header {
+    flex-direction: column;
+    gap: 16px;
+  }
+  .header-actions {
+    width: 100%;
+  }
+  .refresh-btn {
+    width: 100%;
+  }
+}
+</style>
