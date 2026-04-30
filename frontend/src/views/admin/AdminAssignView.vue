@@ -181,6 +181,56 @@ async function autoAssignUnassigned() {
   }
 }
 
+// 针对当前论文的单次自动分配逻辑 (仅勾选，需二次确认)
+function autoSuggestForCurrent() {
+  if (!thesisId.value) {
+    notifyError("请先选择一篇论文");
+    return;
+  }
+  
+  // 过滤出可用的教师（无冲突且未超科室限额）
+  const candidates = reviewers.value.filter(r => !r.is_conflicted && !r.department_will_exceed_quota);
+  
+  if (candidates.length === 0) {
+    notifyError("没有可分配的候选教师");
+    return;
+  }
+
+  // 排序规则：推荐分降序 -> 活跃任务数升序
+  const sorted = [...candidates].sort((a, b) => {
+    if (b.recommendation_score !== a.recommendation_score) {
+      return b.recommendation_score - a.recommendation_score;
+    }
+    return a.active_task_count - b.active_task_count;
+  });
+
+  const count = Number(autoReviewersPerThesis.value) || 2;
+  const picked = sorted.slice(0, count);
+  
+  selectedReviewerIds.value = picked.map(p => p.id);
+  notifySuccess(`已为您自动挑选了 ${picked.length} 位推荐教师，请核对后点击“确认分配”按钮。`);
+}
+
+const isAllSelected = computed(() => {
+  const available = reviewers.value.filter(r => !r.is_conflicted && !r.department_will_exceed_quota);
+  if (available.length === 0) return false;
+  return available.every(r => selectedReviewerIds.value.includes(r.id));
+});
+
+function toggleSelectAll() {
+  const available = reviewers.value.filter(r => !r.is_conflicted && !r.department_will_exceed_quota);
+  if (isAllSelected.value) {
+    // 如果已经全选，则取消选中这些可用的
+    const availableIds = available.map(r => r.id);
+    selectedReviewerIds.value = selectedReviewerIds.value.filter(id => !availableIds.includes(id));
+  } else {
+    // 否则选中所有可用的
+    const currentIds = new Set(selectedReviewerIds.value);
+    available.forEach(r => currentIds.add(r.id));
+    selectedReviewerIds.value = Array.from(currentIds);
+  }
+}
+
 function selectThesis(id) {
   thesisId.value = String(id);
   selectedReviewerIds.value = [];
@@ -260,6 +310,9 @@ onMounted(loadSubmitted);
     </div>
     <div class="row-actions" style="margin-top: 8px">
       <button :disabled="!thesisId || loadingReviewers" @click="loadReviewers">按条件重新筛选教师</button>
+      <button class="accent" :disabled="!thesisId || loadingReviewers || !reviewers.length" @click="autoSuggestForCurrent">
+        单次自动分配 (自动勾选)
+      </button>
     </div>
 
     <div v-if="selectedThesis" class="detail-grid" style="margin-top: 8px">
@@ -272,7 +325,14 @@ onMounted(loadSubmitted);
     <table v-if="reviewers.length" class="data-table" style="margin-top: 12px">
       <thead>
         <tr>
-          <th>选择</th>
+          <th>
+            <input 
+              type="checkbox" 
+              :checked="isAllSelected" 
+              :disabled="!reviewers.some(r => !r.is_conflicted && !r.department_will_exceed_quota)"
+              @change="toggleSelectAll" 
+            />
+          </th>
           <th>教师</th>
           <th>科室</th>
           <th>活跃任务</th>
