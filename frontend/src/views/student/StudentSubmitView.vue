@@ -64,7 +64,12 @@ function onFileChange(event) {
 async function uploadFinal() {
   try {
     if (!fileRef.value) {
-      throw new Error("请先选择文件");
+      // 如果没选文件，点击按钮触发文件选择
+      if (current.value?.status === 'DRAFT') {
+        const input = document.querySelector('input[type="file"]');
+        if (input) input.click();
+      }
+      return;
     }
     const form = new FormData();
     form.append("file", fileRef.value);
@@ -73,6 +78,7 @@ async function uploadFinal() {
       body: form,
     });
     notifySuccess(`终稿上传成功，版本号: V${data?.data?.version_no || "-"}`);
+    fileRef.value = null; // 上传成功后清空本地引用
     await loadCurrent();
   } catch (err) {
     notifyError(err.message || String(err));
@@ -121,10 +127,10 @@ onMounted(loadCurrent);
           <button class="tool-btn" @click="loadCurrent" title="刷新状态">
             <span class="icon">↻</span>
           </button>
-          <button class="primary-btn secondary" @click="uploadFinal" :disabled="!fileRef || !current || current.status !== 'DRAFT'">
-            <span class="icon">↑</span> 上传终稿
+          <button class="primary-btn secondary" @click="uploadFinal" :disabled="!current || current.status !== 'DRAFT'">
+            <span class="icon">↑</span> {{ fileRef ? '确认上传' : '上传终稿' }}
           </button>
-          <button class="primary-btn danger" @click="submitFinal" :disabled="!current || current.status !== 'DRAFT'">
+          <button class="primary-btn danger" @click="submitFinal" :disabled="!current || current.status !== 'DRAFT' || !current.current_version_no">
             <span class="icon">🚀</span> 提交送审
           </button>
         </div>
