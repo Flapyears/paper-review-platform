@@ -15,6 +15,14 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
     credential = db.scalar(
         select(AuthCredential).where(AuthCredential.username == payload.username, AuthCredential.is_active)
     )
+    # Fallback to student_no if username not found
+    if credential is None:
+        user_by_no = db.scalar(select(User).where(User.student_no == payload.username))
+        if user_by_no:
+            credential = db.scalar(
+                select(AuthCredential).where(AuthCredential.user_id == user_by_no.id, AuthCredential.is_active)
+            )
+
     if credential is None or not verify_password(payload.password, credential.password_hash):
         raise HTTPException(status_code=401, detail="Invalid username or password.")
     user = db.get(User, credential.user_id)
